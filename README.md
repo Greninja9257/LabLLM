@@ -198,6 +198,6 @@ Also powered by the usual stack of coffee, compiler errors, and the ancient deve
 
 ## License
 
-LabLLM project code: use freely.
+LabLLM project code is released under the MIT License. See `LICENSE`.
 
-MLX is MIT licensed by Apple. Dataset and model licenses depend on what you import, so read the dataset cards before training anything you plan to share.
+MLX is MIT licensed by Apple. Dataset and model licenses depend on what you import, so read the dataset cards before training anything you plan to share. The app will not read the license for you, because that would be too convenient.
