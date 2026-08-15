@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>A local-first language model workshop for macOS. Your models, datasets, and experiments stay on your Mac.</strong>
+  <strong>Teach tiny brains. Watch them think.</strong>
 </p>
 
 <p align="center">
