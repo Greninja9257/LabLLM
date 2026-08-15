@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>Teach tiny brains. Watch them think.</strong>
+  <strong>Train language models you can actually talk to.</strong>
 </p>
 
 <p align="center">
@@ -22,7 +22,7 @@
   <a href="#contributors"><img src="https://img.shields.io/badge/all_contributors-0-orange.svg?style=for-the-badge" alt="All Contributors" /></a>
 </p>
 
-LabLLM is a native macOS app for building tiny-ish language models locally on Apple Silicon.
+LabLLM is a native macOS app for building capable language models locally on Apple Silicon.
 
 It is SwiftUI, Apple MLX, and just enough ambition to make your Mac ask, "Are we training a model or cooking the battery?" Mostly the first one. Sometimes both.
 
@@ -53,7 +53,7 @@ Yes. It builds with Swift Package Manager and runs as a native macOS app.
 
 It can design a GPT-style model, import text and instruction data, train, fine-tune, sample, chat, save checkpoints, export model cards, and serve a local OpenAI-shaped endpoint.
 
-It is also a local LLM lab, so please calibrate your expectations: a small model trained for 400 steps on a tiny dataset will not become a glowing oracle. It may, however, become confidently weird in a scientifically useful way.
+It can train models from scratch, fine-tune them on instruction or conversation data, and let you chat with the result naturally inside the same app.
 
 ## Requirements
 
@@ -91,7 +91,7 @@ Quite a bit, actually.
 | Data | Hugging Face browsing, local import, iMessage import, dataset mixing, row limits, percentages, and progress for big jobs. |
 | Training | Pretraining, SFT, LoRA, DPO, live metrics, validation curve, samples, checkpoints, pause/resume/stop. |
 | Playing | Sampling, chat, X-Ray token inspection, embeddings, local server, quantized exports. |
-| Customization | Themes, accent, density, sidebar width, feature visibility, tutorial preferences, and more settings than a tiny GPT probably deserves. |
+| Customization | Themes, accent, density, sidebar width, feature visibility, tutorial preferences, and deep controls for serious experiments. |
 
 ### Completed Features
 
@@ -199,7 +199,7 @@ Learn
 -> Keep experimenting
 ```
 
-You can also ignore the flow and click around. The app will survive. Probably.
+You can also ignore the flow and click around. The app is built for exploration.
 
 ## Project Layout
 
@@ -235,9 +235,9 @@ LabLLM/
 
 ## Should I Use This For Serious Work?
 
-For learning, experiments, small local models, and poking at how training feels: yes.
+For learning, experiments, local model development, fine-tuning, and natural chat workflows: yes.
 
-For replacing a production LLM stack that has monitoring, evals, deployment, governance, and someone on-call with a pager: no. Please do not make the tiny desktop training app responsible for payroll.
+For replacing a production LLM stack with monitoring, evals, deployment, governance, and an on-call process: not yet. LabLLM is a powerful local builder, not a full production platform.
 
 ## Credits
 
