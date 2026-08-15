@@ -1,10 +1,50 @@
 # LabLLM
 
+![LabLLM hero](docs/media/labllm-hero.svg)
+
+[![Swift](https://img.shields.io/badge/Swift-5.9-f05138?style=for-the-badge&logo=swift&logoColor=white)](https://swift.org)
+[![macOS](https://img.shields.io/badge/macOS-14+-111827?style=for-the-badge&logo=apple&logoColor=white)](https://developer.apple.com/macos/)
+[![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-MLX-2f7df6?style=for-the-badge)](https://github.com/ml-explore/mlx-swift)
+[![License](https://img.shields.io/badge/License-MIT-19a47a?style=for-the-badge)](LICENSE)
+
 LabLLM is a native macOS app for building tiny-ish language models locally on Apple Silicon.
 
 It is SwiftUI, Apple MLX, and just enough ambition to make your Mac ask, "Are we training a model or cooking the battery?" Mostly the first one. Sometimes both.
 
 This is not a cloud dashboard wearing a fake mustache. Models, datasets, checkpoints, chats, and experiments live on your machine.
+
+## Quick Tour
+
+<table>
+  <tr>
+    <td width="50%">
+      <a href="docs/media/labllm-demo-reel.svg">
+        <img src="docs/media/labllm-demo-reel.svg" alt="Animated LabLLM demo reel" />
+      </a>
+    </td>
+    <td width="50%">
+      <img src="docs/media/labllm-training.svg" alt="Training dashboard mock screenshot" />
+    </td>
+  </tr>
+  <tr>
+    <td><strong>Demo reel</strong><br/>A tiny animated preview. It is not a full recorded walkthrough yet, because shipping an app is already a suspiciously large snack.</td>
+    <td><strong>Training dashboard</strong><br/>Blue train loss, orange validation loss, percent progress, live samples, and fewer places for overfitting to hide.</td>
+  </tr>
+</table>
+
+![LabLLM workflow](docs/media/labllm-flow.svg)
+
+## Video Slots
+
+Real recorded videos belong here once there are release builds to show off. The README is ready for them:
+
+| Video | Status | What it will show |
+| --- | --- | --- |
+| 90-second app tour | Placeholder | Browse data, train a tiny model, generate text, and pretend the loss curve is your friend. |
+| Training run timelapse | Placeholder | The sample timeline changing as checkpoints appear. |
+| Fine-tuning walkthrough | Placeholder | Import JSONL, mix datasets, LoRA fine-tune, then chat with the result. |
+
+For now, the animated SVG above is the low-calorie trailer. It moves, it loads fast, and it will not make the repo the size of a small planet.
 
 ## Does it work?
 
@@ -43,6 +83,14 @@ If you see Metal library errors at runtime, make sure you are using full Xcode r
 ## What Can It Do Right Now?
 
 Quite a bit, actually.
+
+| Area | Current vibe |
+| --- | --- |
+| Model building | GPT-style decoder presets, validation, estimates, and enough knobs to make Expert mode feel legally responsible. |
+| Data | Hugging Face browsing, local import, iMessage import, dataset mixing, row limits, percentages, and progress for big jobs. |
+| Training | Pretraining, SFT, LoRA, DPO, live metrics, validation curve, samples, checkpoints, pause/resume/stop. |
+| Playing | Sampling, chat, X-Ray token inspection, embeddings, local server, quantized exports. |
+| Customization | Themes, accent, density, sidebar width, feature visibility, tutorial preferences, and more settings than a tiny GPT probably deserves. |
 
 ### Completed Features
 

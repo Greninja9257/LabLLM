@@ -1,0 +1,46 @@
+<svg width="960" height="540" viewBox="0 0 960 540" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">LabLLM animated demo reel</title>
+  <desc id="desc">An animated lightweight demo preview cycling through LabLLM features.</desc>
+  <rect width="960" height="540" rx="28" fill="#eaf5ff"/>
+  <rect x="56" y="50" width="848" height="440" rx="26" fill="#ffffff" stroke="#d8e8f4"/>
+  <rect x="56" y="50" width="848" height="42" rx="26" fill="#f2f8ff"/>
+  <circle cx="84" cy="71" r="7" fill="#ff6b6b"/>
+  <circle cx="108" cy="71" r="7" fill="#ffd166"/>
+  <circle cx="132" cy="71" r="7" fill="#4ecdc4"/>
+  <text x="164" y="77" font-family="SFMono-Regular, Menlo, monospace" font-size="13" fill="#5f7990">labllm demo reel - very small movie, no popcorn required</text>
+  <g font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif">
+    <text x="98" y="150" font-size="34" font-weight="800" fill="#203040">Local model lab</text>
+    <text x="100" y="182" font-size="16" fill="#617486">Build the tiny brain. Watch the tiny brain learn. Question the tiny brain.</text>
+  </g>
+  <g>
+    <circle cx="730" cy="164" r="58" fill="#2f7df6" opacity="0.12"/>
+    <circle cx="730" cy="164" r="34" fill="#2f7df6" opacity="0.2"/>
+    <polygon points="720,143 720,185 756,164" fill="#2f7df6"/>
+  </g>
+  <g font-family="SFMono-Regular, Menlo, monospace" font-size="15">
+    <text x="104" y="260" fill="#2f7df6">
+      <animate attributeName="opacity" values="1;1;0;0;1" dur="8s" repeatCount="indefinite"/>
+      import dataset: TinyStories
+    </text>
+    <text x="104" y="292" fill="#19a47a">
+      <animate attributeName="opacity" values="0;1;1;0;0" dur="8s" repeatCount="indefinite"/>
+      train step 1280 / 2000
+    </text>
+    <text x="104" y="324" fill="#f39c12">
+      <animate attributeName="opacity" values="0;0;1;1;0" dur="8s" repeatCount="indefinite"/>
+      val_loss: still watching you
+    </text>
+    <text x="104" y="356" fill="#7c4fd6">
+      <animate attributeName="opacity" values="0;0;0;1;1" dur="8s" repeatCount="indefinite"/>
+      sample: once upon a gradient...
+    </text>
+  </g>
+  <rect x="104" y="400" width="620" height="18" rx="9" fill="#edf1f5"/>
+  <rect x="104" y="400" width="120" height="18" rx="9" fill="#2f7df6">
+    <animate attributeName="width" values="120;280;430;620;120" dur="8s" repeatCount="indefinite"/>
+  </rect>
+  <text x="744" y="416" font-family="SFMono-Regular, Menlo, monospace" font-size="14" fill="#617486">
+    <animate attributeName="opacity" values="1;0.45;1" dur="1.6s" repeatCount="indefinite"/>
+    streaming-ish
+  </text>
+</svg>

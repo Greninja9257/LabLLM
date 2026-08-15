@@ -1,0 +1,29 @@
+<svg width="960" height="260" viewBox="0 0 960 260" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">LabLLM workflow</title>
+  <desc id="desc">A visual workflow from data to tokenizer, training, samples, checkpoints, and local serving.</desc>
+  <rect width="960" height="260" rx="26" fill="#fff8ef"/>
+  <text x="44" y="54" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="24" font-weight="800" fill="#233142">The loop</text>
+  <text x="44" y="82" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" fill="#6e6254">A tiny research treadmill, but cuter.</text>
+  <g font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="700">
+    <rect x="44" y="124" width="116" height="58" rx="16" fill="#ffffff" stroke="#f0d7b4"/>
+    <text x="72" y="158" fill="#233142">Data</text>
+    <path d="M172 153H216" stroke="#d9a452" stroke-width="3" stroke-linecap="round"/>
+    <path d="M208 144L218 153L208 162" stroke="#d9a452" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="232" y="124" width="116" height="58" rx="16" fill="#ffffff" stroke="#f0d7b4"/>
+    <text x="260" y="158" fill="#233142">Tokenizer</text>
+    <path d="M360 153H404" stroke="#d9a452" stroke-width="3" stroke-linecap="round"/>
+    <path d="M396 144L406 153L396 162" stroke="#d9a452" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="420" y="124" width="116" height="58" rx="16" fill="#ffffff" stroke="#f0d7b4"/>
+    <text x="450" y="158" fill="#233142">Train</text>
+    <path d="M548 153H592" stroke="#d9a452" stroke-width="3" stroke-linecap="round"/>
+    <path d="M584 144L594 153L584 162" stroke="#d9a452" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="608" y="124" width="116" height="58" rx="16" fill="#ffffff" stroke="#f0d7b4"/>
+    <text x="638" y="158" fill="#233142">Sample</text>
+    <path d="M736 153H780" stroke="#d9a452" stroke-width="3" stroke-linecap="round"/>
+    <path d="M772 144L782 153L772 162" stroke="#d9a452" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="796" y="124" width="116" height="58" rx="16" fill="#ffffff" stroke="#f0d7b4"/>
+    <text x="826" y="158" fill="#233142">Serve</text>
+  </g>
+  <path d="M854 190C794 236 516 238 478 191" stroke="#d9a452" stroke-width="3" stroke-dasharray="8 8" stroke-linecap="round"/>
+  <text x="500" y="228" font-family="SFMono-Regular, Menlo, monospace" font-size="13" fill="#8a6a35">find weird thing -&gt; adjust -&gt; try again</text>
+</svg>
