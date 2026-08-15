@@ -4,6 +4,7 @@
 .build/
 .swiftpm/
 .vscode/
+dist/
 
 # macOS metadata
 .DS_Store

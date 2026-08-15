@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="LabLLM is a native macOS lab for teaching tiny language models to think with Apple MLX." />
+    <meta property="og:title" content="LabLLM" />
+    <meta property="og:description" content="Teach tiny brains. Watch them think." />
+    <meta property="og:image" content="media/captures/labllm-hero.gif" />
+    <title>LabLLM - Teach tiny brains</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="cursor-glow" aria-hidden="true"></div>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="LabLLM home"><span class="brand-mark">L</span><span>LabLLM</span></a>
+      <nav class="site-nav" aria-label="Main navigation">
+        <a href="#workflow">Workflow</a>
+        <a href="#features">Features</a>
+        <a href="#contribute">Contribute</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+      <a class="nav-cta" href="https://github.com/Greninja9257/LabLLM/releases">Download beta</a>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <div class="hero-copy reveal">
+          <p class="eyebrow">Native macOS - Apple MLX - Tiny GPTs</p>
+          <h1>Teach tiny brains. Watch them think.</h1>
+          <p class="hero-text">
+            LabLLM turns language-model training into a hands-on workspace: design a model,
+            bring data, train, fine-tune, sample, inspect, and iterate without leaving the app.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="https://github.com/Greninja9257/LabLLM/releases">Get the beta</a>
+            <a class="button secondary" href="https://github.com/Greninja9257/LabLLM">View source</a>
+          </div>
+          <div class="hero-stats" aria-label="Project highlights">
+            <span><strong>SwiftUI</strong> interface</span>
+            <span><strong>MLX</strong> accelerated</span>
+            <span><strong>JSONL</strong> fine-tuning</span>
+          </div>
+        </div>
+        <div class="hero-visual reveal">
+          <img src="media/captures/labllm-hero.gif" alt="Animated LabLLM word field" />
+        </div>
+      </section>
+
+      <section class="strip reveal" aria-label="What LabLLM does">
+        <span>Build</span><span>Train</span><span>Fine-tune</span><span>Sample</span><span>Inspect</span><span>Export</span>
+      </section>
+
+      <section id="workflow" class="section split">
+        <div class="section-copy reveal">
+          <p class="eyebrow">Start with the shape of the experiment</p>
+          <h2>From blank project to talking checkpoint.</h2>
+          <p>
+            Pick a model size, browse real datasets, tune the recipe, and watch training
+            unfold with validation loss, progress, and generated samples in the same view.
+          </p>
+          <ul class="ticks">
+            <li>Simple mode builds the tokenizer when training starts.</li>
+            <li>Advanced mode opens recipes, estimates, and checkpoint management.</li>
+            <li>Expert mode exposes X-Ray, embeddings, serving, and deeper inspection.</li>
+          </ul>
+        </div>
+        <figure class="product-frame reveal">
+          <img src="media/captures/labllm-training.png" alt="LabLLM training dashboard" loading="lazy" />
+        </figure>
+      </section>
+
+      <section class="section gallery">
+        <div class="section-heading reveal">
+          <p class="eyebrow">A real workbench, not a settings maze</p>
+          <h2>Everything has a place.</h2>
+        </div>
+        <div class="gallery-grid">
+          <article class="visual-card reveal">
+            <img src="media/captures/labllm-data.png" alt="Pre-training data browser" loading="lazy" />
+            <h3>Bring useful data</h3>
+            <p>Search Hugging Face, preview dataset cards, and import trainable files instead of README fluff.</p>
+          </article>
+          <article class="visual-card reveal">
+            <img src="media/captures/labllm-models.png" alt="Model manager" loading="lazy" />
+            <h3>Keep the good runs</h3>
+            <p>Load, continue, rename, quantize, and compare checkpoints without spelunking through folders.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="features" class="section feature-band">
+        <div class="section-heading reveal">
+          <p class="eyebrow">Built for people learning by doing</p>
+          <h2>A small-model lab with serious knobs.</h2>
+        </div>
+        <div class="feature-grid">
+          <article class="feature reveal"><span class="feature-icon">01</span><h3>Model Builder</h3><p>GPT-style presets, editable transformer settings, parameter estimates, and architecture validation.</p></article>
+          <article class="feature reveal"><span class="feature-icon">02</span><h3>Dataset Studio</h3><p>Pre-training data, JSONL fine-tuning data, iMessage imports, dataset mixing, row limits, and progress.</p></article>
+          <article class="feature reveal"><span class="feature-icon">03</span><h3>Training Dashboard</h3><p>Loss, orange validation loss, perplexity, throughput, ETA, checkpoints, and a live sample timeline.</p></article>
+          <article class="feature reveal"><span class="feature-icon">04</span><h3>Playgrounds</h3><p>Sampling, chat, X-Ray token probabilities, embeddings, and a local OpenAI-shaped server.</p></article>
+        </div>
+      </section>
+
+      <section class="section manifesto reveal">
+        <p>
+          The point is not to pretend your laptop is a datacenter. The point is to make model
+          training visible, tweakable, breakable, and fun enough that you actually understand it.
+        </p>
+      </section>
+
+      <section id="contribute" class="section contribute">
+        <div class="section-copy reveal">
+          <p class="eyebrow">Pull requests welcome</p>
+          <h2>Help make the lab stranger, clearer, and more useful.</h2>
+          <p>
+            Issues, ideas, docs fixes, dataset recipes, UI polish, training experiments, and bug reports
+            are all useful. The repo includes issue templates, a PR template, contribution guidelines,
+            and All Contributors support.
+          </p>
+        </div>
+        <div class="contribution-links reveal">
+          <a href="https://github.com/Greninja9257/LabLLM/issues/new/choose">Open an issue</a>
+          <a href="https://github.com/Greninja9257/LabLLM/pulls">Open a PR</a>
+          <a href="https://github.com/Greninja9257/LabLLM/blob/master/CONTRIBUTING.md">Read guidelines</a>
+        </div>
+      </section>
+
+      <section id="faq" class="section faq">
+        <div class="section-heading reveal">
+          <p class="eyebrow">Tiny questions</p>
+          <h2>Mostly practical answers.</h2>
+        </div>
+        <div class="faq-list">
+          <details class="reveal"><summary>Does it train real models?</summary><p>Yes. It builds GPT-style decoder models with MLX and saves checkpoints you can load back into the app.</p></details>
+          <details class="reveal"><summary>Is this for giant frontier models?</summary><p>No. It is for learning, experiments, small runs, dataset exploration, and local tinkering.</p></details>
+          <details class="reveal"><summary>What Mac do I need?</summary><p>macOS 14 or newer on Apple Silicon. More memory gives you more room for bigger experiments.</p></details>
+          <details class="reveal"><summary>Can I contribute?</summary><p>Yes. Open an issue, propose a small focused PR, or add yourself through the All Contributors flow.</p></details>
+        </div>
+      </section>
+
+      <section class="final-cta reveal">
+        <h2>Ready to make a tiny model say something weird?</h2>
+        <a class="button primary" href="https://github.com/Greninja9257/LabLLM/releases">Download the beta</a>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>LabLLM</span>
+      <a href="https://github.com/Greninja9257/LabLLM">GitHub</a>
+      <a href="https://github.com/Greninja9257/LabLLM/releases">Releases</a>
+      <a href="https://github.com/Greninja9257/LabLLM/blob/master/CONTRIBUTING.md">Contribute</a>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>

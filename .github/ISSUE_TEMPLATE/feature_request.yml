@@ -1,0 +1,35 @@
+name: Feature request
+description: Suggest a useful improvement.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem should this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: What would you like to happen?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Model builder
+        - Dataset import
+        - Training
+        - Fine-tuning
+        - Sampling/chat
+        - Visualization
+        - Documentation
+        - Website
+        - Other
+  - type: textarea
+    id: notes
+    attributes:
+      label: Extra context

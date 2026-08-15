@@ -7,7 +7,11 @@
 </p>
 
 <p align="center">
+  <a href="https://greninja9257.github.io/LabLLM/"><strong>Website</strong></a>
+  ·
   <a href="https://github.com/Greninja9257/LabLLM/releases"><strong>Download the latest beta</strong></a>
+  ·
+  <a href="CONTRIBUTING.md"><strong>Contribute</strong></a>
 </p>
 
 <p align="center">
@@ -15,6 +19,7 @@
   <a href="https://developer.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-14+-111827?style=for-the-badge&logo=apple&logoColor=white" alt="macOS 14+" /></a>
   <a href="https://github.com/ml-explore/mlx-swift"><img src="https://img.shields.io/badge/Apple%20Silicon-MLX-2f7df6?style=for-the-badge" alt="Apple Silicon MLX" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-19a47a?style=for-the-badge" alt="MIT License" /></a>
+  <a href="#contributors"><img src="https://img.shields.io/badge/all_contributors-0-orange.svg?style=for-the-badge" alt="All Contributors" /></a>
 </p>
 
 LabLLM is a native macOS app for building tiny-ish language models locally on Apple Silicon.
@@ -239,6 +244,19 @@ For replacing a production LLM stack that has monitoring, evals, deployment, gov
 Built on Apple's MLX and `mlx-swift`.
 
 Also powered by the usual stack of coffee, compiler errors, and the ancient developer ritual of muttering "why is focus broken" at a screen.
+
+## Contributing
+
+Pull requests, issues, recipes, docs fixes, images, and ideas are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md), use the issue templates, and keep pull requests focused.
+
+## Contributors
+
+Thanks goes to these wonderful people:
+
+<!-- ALL-CONTRIBUTORS-LIST:START -->
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
+This project follows the [All Contributors](https://allcontributors.org/) specification. Contributions of any kind are welcome.
 
 ## License
 

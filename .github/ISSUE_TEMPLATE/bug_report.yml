@@ -1,0 +1,43 @@
+name: Bug report
+description: Something crashed, broke, or behaved incorrectly.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Tell us what broke.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open ...
+        2. Click ...
+        3. See ...
+    validations:
+      required: true
+  - type: input
+    id: mac
+    attributes:
+      label: Mac model / chip
+      placeholder: M1 MacBook Air, M3 Pro, etc.
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: macOS 14.6
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or images
+      description: Paste logs or attach images if useful.
