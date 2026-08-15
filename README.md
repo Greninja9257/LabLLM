@@ -7,6 +7,10 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/Greninja9257/LabLLM/releases"><strong>Download the latest beta</strong></a>
+</p>
+
+<p align="center">
   <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-5.9-f05138?style=for-the-badge&logo=swift&logoColor=white" alt="Swift 5.9" /></a>
   <a href="https://developer.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-14+-111827?style=for-the-badge&logo=apple&logoColor=white" alt="macOS 14+" /></a>
   <a href="https://github.com/ml-explore/mlx-swift"><img src="https://img.shields.io/badge/Apple%20Silicon-MLX-2f7df6?style=for-the-badge" alt="Apple Silicon MLX" /></a>
