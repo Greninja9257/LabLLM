@@ -1,6 +1,8 @@
 # LabLLM
 
-![LabLLM hero](docs/media/labllm-hero.svg)
+<p align="center">
+  <img src="docs/media/captures/labllm-start.png" alt="LabLLM start screen" width="920" />
+</p>
 
 [![Swift](https://img.shields.io/badge/Swift-5.9-f05138?style=for-the-badge&logo=swift&logoColor=white)](https://swift.org)
 [![macOS](https://img.shields.io/badge/macOS-14+-111827?style=for-the-badge&logo=apple&logoColor=white)](https://developer.apple.com/macos/)
@@ -13,38 +15,24 @@ It is SwiftUI, Apple MLX, and just enough ambition to make your Mac ask, "Are we
 
 This is not a cloud dashboard wearing a fake mustache. Models, datasets, checkpoints, chats, and experiments live on your machine.
 
-## Quick Tour
+## A Small Peek
 
 <table>
   <tr>
-    <td width="50%">
-      <a href="docs/media/labllm-demo-reel.svg">
-        <img src="docs/media/labllm-demo-reel.svg" alt="Animated LabLLM demo reel" />
-      </a>
-    </td>
-    <td width="50%">
-      <img src="docs/media/labllm-training.svg" alt="Training dashboard mock screenshot" />
-    </td>
+    <td width="50%"><img src="docs/media/captures/labllm-data.png" alt="LabLLM pre-training data browser" /></td>
+    <td width="50%"><img src="docs/media/captures/labllm-training.png" alt="LabLLM training dashboard" /></td>
   </tr>
   <tr>
-    <td><strong>Demo reel</strong><br/>A tiny animated preview. It is not a full recorded walkthrough yet, because shipping an app is already a suspiciously large snack.</td>
-    <td><strong>Training dashboard</strong><br/>Blue train loss, orange validation loss, percent progress, live samples, and fewer places for overfitting to hide.</td>
+    <td><strong>Bring data</strong><br/>Search Hugging Face, inspect what you found, then import actual trainable files instead of collecting README confetti.</td>
+    <td><strong>Watch learning</strong><br/>Blue train loss, orange validation loss, progress, throughput, and live samples in one place.</td>
+  </tr>
+  <tr>
+    <td colspan="2"><img src="docs/media/captures/labllm-models.png" alt="LabLLM model manager" /></td>
+  </tr>
+  <tr>
+    <td colspan="2"><strong>Keep the useful runs</strong><br/>Load, continue, rename, quantize, and compare checkpoints without spelunking through folders like it is 2007.</td>
   </tr>
 </table>
-
-![LabLLM workflow](docs/media/labllm-flow.svg)
-
-## Video Slots
-
-Real recorded videos belong here once there are release builds to show off. The README is ready for them:
-
-| Video | Status | What it will show |
-| --- | --- | --- |
-| 90-second app tour | Placeholder | Browse data, train a tiny model, generate text, and pretend the loss curve is your friend. |
-| Training run timelapse | Placeholder | The sample timeline changing as checkpoints appear. |
-| Fine-tuning walkthrough | Placeholder | Import JSONL, mix datasets, LoRA fine-tune, then chat with the result. |
-
-For now, the animated SVG above is the low-calorie trailer. It moves, it loads fast, and it will not make the repo the size of a small planet.
 
 ## Does it work?
 
@@ -78,7 +66,7 @@ swift package reset
 swift build
 ```
 
-If you see Metal library errors at runtime, make sure you are using full Xcode rather than only the Command Line Tools. MLX needs the Metal toolchain, and it is picky in the way high-performance compute libraries tend to be.
+The app bundles the MLX Metal library needed for the SwiftPM build. Full Xcode is still recommended if you want to rebuild MLX itself, because high-performance compute libraries enjoy keeping everyone humble.
 
 ## What Can It Do Right Now?
 
