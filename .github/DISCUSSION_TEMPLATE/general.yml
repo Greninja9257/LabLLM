@@ -1,0 +1,42 @@
+title: "[General] "
+labels: ["discussion"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use General for open-ended LabLLM discussion: workflows, design direction, model-building questions, and community planning.
+  - type: input
+    id: topic
+    attributes:
+      label: Topic
+      description: What do you want to discuss?
+      placeholder: "How should LabLLM organize experiment history?"
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Give enough background for other people to join in.
+      placeholder: "I am trying to compare checkpoints after a fine-tuning run..."
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Model builder
+        - Dataset studio
+        - Training
+        - Fine-tuning
+        - Sampling/chat
+        - Visualization
+        - Website/docs
+        - Community
+        - Other
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Ideal outcome
+      description: What would a useful answer or decision look like?

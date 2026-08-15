@@ -12,6 +12,8 @@
   <a href="https://github.com/Greninja9257/LabLLM/releases"><strong>Download the latest beta</strong></a>
   ·
   <a href="CONTRIBUTING.md"><strong>Contribute</strong></a>
+  ·
+  <a href="https://github.com/Greninja9257/LabLLM/discussions"><strong>Discussions</strong></a>
 </p>
 
 <p align="center">
@@ -247,7 +249,7 @@ Also powered by the usual stack of coffee, compiler errors, and the ancient deve
 
 ## Contributing
 
-Pull requests, issues, recipes, docs fixes, images, and ideas are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md), use the issue templates, and keep pull requests focused.
+Pull requests, issues, recipes, docs fixes, images, and ideas are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md), use [Discussions](https://github.com/Greninja9257/LabLLM/discussions) for questions and early ideas, and keep pull requests focused.
 
 ## Contributors
 

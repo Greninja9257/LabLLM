@@ -1,0 +1,29 @@
+title: "[Announcement] "
+labels: ["announcement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this category for maintainer updates: beta releases, roadmap changes, compatibility notes, and important project news.
+  - type: input
+    id: headline
+    attributes:
+      label: Headline
+      description: What is the update?
+      placeholder: "LabLLM Beta 0.2 is out"
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What changed, and who should care?
+      placeholder: "This release improves fine-tuning stability and adds..."
+    validations:
+      required: true
+  - type: textarea
+    id: links
+    attributes:
+      label: Links
+      description: Add release, roadmap, issue, PR, or docs links.
+      placeholder: "- Release: https://github.com/Greninja9257/LabLLM/releases/..."

@@ -11,9 +11,19 @@ Thanks for helping make LabLLM better. Small, focused contributions are easiest 
 - Polish a rough UI state.
 - Add a focused test or reproducible bug case.
 
+## Issues vs Discussions
+
+Use Discussions when you want to ask a question, share a training result, float an early idea, or compare workflows.
+
+Use Issues when there is a reproducible bug, a scoped documentation fix, or an implementation task that is ready to track.
+
+- Q&A: <https://github.com/Greninja9257/LabLLM/discussions/categories/q-a>
+- Ideas: <https://github.com/Greninja9257/LabLLM/discussions/categories/ideas>
+- Show and tell: <https://github.com/Greninja9257/LabLLM/discussions/categories/show-and-tell>
+
 ## Before You Open a Pull Request
 
-1. Check existing issues and pull requests so you do not duplicate work.
+1. Check existing issues, discussions, and pull requests so you do not duplicate work.
 2. Open an issue for larger changes before writing a big patch.
 3. Keep the PR focused on one thing.
 4. Build locally with:

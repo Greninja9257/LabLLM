@@ -1,0 +1,35 @@
+title: "[Show & Tell] "
+labels: ["show-and-tell"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Share what you trained, what data you used, what worked, and what surprised you.
+  - type: input
+    id: project
+    attributes:
+      label: What did you build?
+      placeholder: "A chatty poetry model fine-tuned on public-domain verse"
+    validations:
+      required: true
+  - type: textarea
+    id: recipe
+    attributes:
+      label: Recipe
+      description: Model size, dataset, tokenizer, training/fine-tuning settings, and rough runtime.
+      placeholder: |
+        Model:
+        Data:
+        Steps:
+        LoRA/full fine-tune:
+  - type: textarea
+    id: result
+    attributes:
+      label: Result
+      description: Share samples, screenshots, observations, or lessons learned.
+    validations:
+      required: true
+  - type: textarea
+    id: next
+    attributes:
+      label: What would you try next?

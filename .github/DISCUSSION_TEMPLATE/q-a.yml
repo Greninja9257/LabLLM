@@ -1,0 +1,39 @@
+title: "[Q&A] "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ask how-to questions here. If you found a reproducible crash or bug, use Issues instead.
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What are you trying to do?
+      placeholder: "How do I fine-tune a model on multiple JSONL datasets?"
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: What have you tried?
+      description: Include settings, dataset type, or screenshots if helpful.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Installation
+        - Pre-training data
+        - Fine-tuning data
+        - Training settings
+        - Sampling/chat
+        - Checkpoints/models
+        - Local server
+        - Other
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Mac model, macOS version, LabLLM version.
+      placeholder: "M2 Pro, macOS 14.6, LabLLM Beta 0.1"

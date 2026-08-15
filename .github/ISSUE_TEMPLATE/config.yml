@@ -1,5 +1,11 @@
 blank_issues_enabled: true
 contact_links:
+  - name: Questions and community help
+    url: https://github.com/Greninja9257/LabLLM/discussions/categories/q-a
+    about: Ask usage questions in Discussions so answers stay searchable.
+  - name: Feature ideas and product direction
+    url: https://github.com/Greninja9257/LabLLM/discussions/categories/ideas
+    about: Discuss ideas before turning them into scoped issues.
   - name: Releases
     url: https://github.com/Greninja9257/LabLLM/releases
     about: Download the latest beta.
