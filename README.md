@@ -1,13 +1,23 @@
-# LabLLM
-
 <p align="center">
-  <img src="docs/media/captures/labllm-start.png" alt="LabLLM start screen" width="920" />
+  <img src="docs/media/captures/labllm-hero.gif" alt="LabLLM animated word field" width="920" />
 </p>
 
-[![Swift](https://img.shields.io/badge/Swift-5.9-f05138?style=for-the-badge&logo=swift&logoColor=white)](https://swift.org)
-[![macOS](https://img.shields.io/badge/macOS-14+-111827?style=for-the-badge&logo=apple&logoColor=white)](https://developer.apple.com/macos/)
-[![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-MLX-2f7df6?style=for-the-badge)](https://github.com/ml-explore/mlx-swift)
-[![License](https://img.shields.io/badge/License-MIT-19a47a?style=for-the-badge)](LICENSE)
+<h1 align="center">LabLLM</h1>
+
+<p align="center">
+  Build, train, fine-tune, sample, and inspect small language models locally on your Mac.
+</p>
+
+<p align="center">
+  <strong>No cloud account. No subscription. No mysterious server eating your dataset.</strong>
+</p>
+
+<p align="center">
+  <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-5.9-f05138?style=for-the-badge&logo=swift&logoColor=white" alt="Swift 5.9" /></a>
+  <a href="https://developer.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-14+-111827?style=for-the-badge&logo=apple&logoColor=white" alt="macOS 14+" /></a>
+  <a href="https://github.com/ml-explore/mlx-swift"><img src="https://img.shields.io/badge/Apple%20Silicon-MLX-2f7df6?style=for-the-badge" alt="Apple Silicon MLX" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-19a47a?style=for-the-badge" alt="MIT License" /></a>
+</p>
 
 LabLLM is a native macOS app for building tiny-ish language models locally on Apple Silicon.
 

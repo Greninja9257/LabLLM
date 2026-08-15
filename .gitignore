@@ -3,6 +3,7 @@
 # Build artifacts
 .build/
 .swiftpm/
+.vscode/
 
 # macOS metadata
 .DS_Store
