@@ -1,102 +1,203 @@
 # LabLLM
 
-A native **macOS (SwiftUI + Apple MLX)** app for training, fine-tuning, and serving small GPT language models locally on Apple Silicon.
+LabLLM is a native macOS app for building tiny-ish language models locally on Apple Silicon.
 
----
+It is SwiftUI, Apple MLX, and just enough ambition to make your Mac ask, "Are we training a model or cooking the battery?" Mostly the first one. Sometimes both.
 
-## Read this first
+This is not a cloud dashboard wearing a fake mustache. Models, datasets, checkpoints, chats, and experiments live on your machine.
 
-This is a **real, buildable Xcode project**, written against the actual `mlx-swift` API (signatures verified by cloning and grepping the source), but it has **not been compiled or run** in this environment — no Xcode, no Apple Silicon, no Metal compiler available here. Everything below is implemented as real, working logic (not stubs), verified against the library's actual source wherever I could, but you are the first compiler it will meet. See **Spots to sanity-check first** below if the build complains.
+## Does it work?
 
-Requirements: **Apple Silicon (M1+)**, **macOS 14+**, **Xcode 15+** (full Xcode — MLX needs the Metal compiler, which the Command Line Tools alone don't include).
+Yes. It builds with Swift Package Manager and runs as a native macOS app.
 
-## Build & run
+It can design a GPT-style model, import text and instruction data, train, fine-tune, sample, chat, save checkpoints, export model cards, and serve a local OpenAI-shaped endpoint.
 
-1. Xcode → **File ▸ New ▸ Project ▸ macOS ▸ App** (SwiftUI). Delete the template `ContentView`/`App` files, drag in everything under `Sources/LabLLM/`.
-2. **File ▸ Add Package Dependencies…** → `https://github.com/ml-explore/mlx-swift` (pinned here at `0.31.6`, which includes the fix for the `std::array` C++ build error some older versions hit) → add products **MLX, MLXNN, MLXOptimizers, MLXRandom, MLXFast**.
-3. Build & run (⌘R). Keep **Swift Language Version = 5** (Xcode default) — see *Concurrency note*.
+It is also a local LLM lab, so please calibrate your expectations: a small model trained for 400 steps on a tiny dataset will not become a glowing oracle. It may, however, become confidently weird in a scientifically useful way.
 
-If your Xcode/mlx-swift version combination reports an incompatible-tools-version resolver error, try pinning to a slightly older mlx-swift release in the `0.25–0.31` range in Xcode's package rules.
+## Requirements
 
----
+- macOS 14+
+- Apple Silicon, M1 or newer
+- Xcode 15+ recommended
+- Swift Package Manager
+- Patience, because compiling MLX for the first time is a small ceremony
 
-## What's implemented
+The package pins `mlx-swift` to `0.31.6`.
 
-**Guided experience** — Simple/Advanced/Expert modes (persisted, feature-gated), a welcome flow, a replayable tutorial, loading overlays with status text.
+## Build & Run
 
-**Model & tokenizers** — configurable GPT decoder with live estimates; **character, byte-level, and a real trained byte-pair-encoding (BPE) tokenizer** (GPT-2 style: byte→symbol mapping, iterative merge learning, greedy encode).
-
-**Data** — TXT import for pretraining; **fine-tuning data import**: local JSONL (several schemas: `messages`, Alpaca-style `instruction/output`, `prompt/response`) with a real example-row preview, plus a best-effort **Hugging Face downloader** (editable repo/file path, since dataset layouts vary — errors surface clearly rather than failing silently) and a small curated catalog.
-
-**Training** — pretraining, **SFT with assistant-only loss masking** (chat template with `<|system|>/<|user|>/<|assistant|>/<|end|>`), and **DPO** (frozen reference model + policy, real preference loss). AdamW/SGD, warmup+cosine LR, gradient accumulation/clipping, periodic checkpointing, **resume from any checkpoint**, pause/stop.
-
-**LoRA** — real low-rank adapters on the Q/V attention projections, added via `freeze()` then attaching fresh trainable adapters (base weights excluded from gradients automatically since they were frozen before the adapters existed). Adapter-only weights are saved alongside the full merged checkpoint.
-
-**Reliability** — training/checkpoint errors surface in the UI instead of failing silently; **Cmd+Q gracefully stops an active run and waits (up to 8s) for the in-flight checkpoint save** before quitting, via a proper `NSApplicationDelegate` with `.terminateLater`.
-
-**Sampling & inspection** — temperature/top-k/top-p/min-p/repetition-penalty/stop-sequences/seed, streamed; a **chat playground**; an **X-Ray token inspector** showing each generated token's real probability, entropy, and top alternatives; a **local OpenAI-shaped HTTP server** (`/v1/chat/completions`, non-streaming) over the in-memory model.
-
-**Embedding map** — a real PCA projection (power iteration + deflation, pure Swift) of the model's *trained* token embeddings into 2D, with an animated similarity-based relaxation pass so related tokens visibly drift together.
-
-**Checkpoints** — safetensors + JSON + auto-generated Markdown **model card**; best-checkpoint flag by val loss; **quantization export** using MLX's native `quantize()` (real 4-bit/8-bit quantized weights, not a size estimate) with a before/after file-size comparison.
-
-**Recipes, Estimator, Hardware profiler** — one-click setups, resource math, chip/RAM guidance.
-
-## What's NOT built
-
-Attention/hidden-state visualization (needs exposing intermediate activations), evaluation suites, experiment tracking/sweeps, multi-project management, the educational textbook, community features, multimodal/voice. See the in-app **Roadmap** tab (Expert mode) for the full breakdown.
-
-Two specific things worth flagging even though the surrounding feature is real:
-- **Quantized checkpoints aren't loadable back into the app yet.** Export works and produces genuine quantized weights + a real size comparison; wiring `QuantizedLinear`/`QuantizedEmbedding` back through `Checkpoint.loadModel` for sampling is the natural next step.
-- **The local server doesn't actually stream** — a `stream: true` request still gets one complete response. True SSE streaming over the raw socket layer was cut to avoid guessing at more unverified plumbing.
-
----
-
-## Spots to sanity-check first
-
-I verified every MLX-Swift API used here against the cloned source, but I can't compile Swift or run Metal in this environment, so treat these as the highest-probability trouble spots if the build fails:
-
-1. **LoRA's freeze/attach order** (`GPT.addLoRA`) — relies on `freeze()` snapshotting the *existing* module tree at call time, so adapters attached afterward stay trainable. This matches the documented behavior in MLX-Swift's own `Module.swift`, but it's the trickiest piece of new logic here.
-2. **`valueAndGrad` with the `[MLXArray]` array-output overload** — used for SFT and DPO's masked/paired losses. Confirmed to exist in the source; the exact closure signature is the thing to double check first.
-3. **DPO's loss math** — built entirely from `crossEntropy`, `exp`, `log`, `sqrt`, `maximum` (all confirmed to exist) rather than an unverified `logSigmoid`/`softplus` call, specifically to avoid guessing at an API I couldn't confirm.
-4. **`quantize(model:groupSize:bits:filter:)`** — real, confirmed API; LoRA adapter weights are explicitly excluded from the filter since their tiny rank dimension isn't divisible by the default group size and would likely error.
-5. **`ModelServer`'s raw HTTP parsing** (`Network` framework) — the one file with zero MLX involvement but also zero ability for me to test-connect to it from here.
-6. **BPE training performance** — O(merges × corpus) with a full rescan per merge; fine for a few hundred KB, will be slow on a very large corpus. Consider capping the training sample size in `AppState.buildBPETokenizer` if needed.
-
-## Concurrency note
-
-Training captures the non-`Sendable` model into a background `DispatchQueue`; the local server calls into the model from `Network`'s own queue. Both are guarded against overlapping with each other (the server checks `!isTraining`), but this is cooperative, not enforced by the type system. Keep the project on **Swift 5 language mode** (Xcode default) — Swift 6 strict concurrency will flag these as errors rather than warnings.
-
-## Layout
+```bash
+swift build
+swift run LabLLM
 ```
+
+If MLX gets confused after a dependency update, try:
+
+```bash
+swift package reset
+swift build
+```
+
+If you see Metal library errors at runtime, make sure you are using full Xcode rather than only the Command Line Tools. MLX needs the Metal toolchain, and it is picky in the way high-performance compute libraries tend to be.
+
+## What Can It Do Right Now?
+
+Quite a bit, actually.
+
+### Completed Features
+
+- Local-first macOS app with no account and no subscription
+- Apple Silicon + MLX acceleration
+- Simple, Advanced, and Expert modes
+- Customizable appearance, accent color, density, panel opacity, sidebar width, and feature visibility
+- Welcome screen with animated background
+- Persistent tutorial progress and guided setup overlay
+- GPT-style decoder model builder
+- Tiny, small, medium, and large-ish model presets
+- Live parameter, memory, disk, and rough training estimates
+- Character, byte, and trained BPE tokenizers
+- Automatic tokenizer build in Simple mode
+- Pre-training data browser for Hugging Face datasets
+- Fine-tuning data browser for Hugging Face datasets
+- Local TXT, JSON, JSONL, CSV-ish, and iMessage import paths
+- Dataset mixing with percentages or row limits
+- Download/import progress for big data tasks
+- Chunked local file loading so large files do not freeze everything immediately
+- Pretraining with AdamW/SGD, warmup, cosine LR, gradient clipping, gradient accumulation, checkpoints, pause, resume, and stop
+- Supervised fine-tuning with chat templates and assistant-only loss masking
+- LoRA fine-tuning
+- DPO preference training
+- Training dashboard with loss, validation loss, perplexity, LR, throughput, ETA, and percent progress
+- Validation loss as a separate configurable-color curve
+- Live sample timeline during training and fine-tuning
+- Sampling playground with temperature, top-k, top-p, min-p, repetition penalty, seed, stop sequences, greedy mode, and continuation
+- Inline generation display in the prompt area
+- Local chat playground
+- X-Ray token inspector with probabilities, entropy, and top alternatives
+- Embedding explorer with PCA-style 2D projection and relaxation
+- Model manager for loading, continuing, duplicating, renaming, quantizing, and organizing checkpoints
+- Safetensors-style checkpoint save/load flow
+- Automatic Markdown model card generation
+- 4-bit and 8-bit quantized model export
+- Local OpenAI-shaped HTTP server with streaming responses
+- Hardware profiler and resource estimator
+- Recipes for quick starts
+- In-app roadmap sorted into completed, in-progress, and planned work
+
+## In Progress
+
+These are partially present or actively being shaped into something less chaotic.
+
+- Fuller Tokenizer Lab with tokenizer comparison, Unicode analysis, heatmaps, and richer token statistics
+- Dataset Studio polish: stronger filtering, sorting, provenance, versioning, and better previews
+- Curated dataset catalog with better metadata, licenses, caching, and update notices
+- Experiment tracking for runs, datasets, tokenizers, hardware, software versions, notes, and comparisons
+- Checkpoint timeline and model evolution views
+- Better sampling history, generation comparison, exports, logprobs, and entropy displays
+- Deeper X-Ray mode with attention, layer, head, activation, residual stream, MLP, and neuron explorers
+- Fine-tuning workflow improvements, including better validation, packing, adapter management, and comparisons
+- Model import/export polish for Hugging Face-compatible models, LoRA adapters, tokenizer configs, and reproducibility bundles
+- Quantized model loading and direct quantized sampling
+- Hardware monitoring for thermal, power, GPU, and Neural Engine details
+- Local server request logs, token usage, latency stats, and model health views
+- Interactive lessons, smarter tutorial coverage, and an eventual local teaching assistant
+- UX customization, accessibility controls, documentation, error explanations, and privacy controls
+
+## Planned Features
+
+This is where the ambition lives. Some of it is sensible. Some of it is probably wearing a lab coat it found in a closet.
+
+- Project management with templates, notes, tags, history, snapshots, backups, import, and export
+- Data cleaning: deduplication, normalization, boilerplate removal, spam filtering, toxicity checks, PII detection, and before/after previews
+- Dataset analytics: token distributions, language distributions, quality scores, diversity scores, charts, and histograms
+- Evaluation suites for perplexity, reasoning, math, coding, instruction following, long context, hallucination, consistency, and safety
+- Evaluation builder with exact match, semantic scoring, regex scoring, LLM-as-judge scoring, and custom scoring functions
+- Model comparison across checkpoints, architectures, datasets, tokenizers, prompts, speed, memory, and quality
+- Attention Lab, Transformer Lab, Context Lab, KV Cache Lab, Prompt Lab, RAG Lab, and Tool/Function Calling Lab
+- RAG workflows with document import, chunking, embeddings, local vector database, hybrid search, citation generation, and retrieval evaluation
+- Safety testing for refusals, toxicity, bias, hallucination, prompt injection, and jailbreak resistance
+- Scaling law experiments and break-the-model experiments
+- Smart training assistant for hyperparameter suggestions, memory warnings, data-quality warnings, overfitting alerts, and "why did my model get worse?" analysis
+- Automation pipelines: pretraining -> SFT -> DPO, automatic evaluation, checkpoint selection, export, sweeps, and experiment ranking
+- Reproducibility reports with seeds, dataset versions, tokenizer versions, model configs, hardware, software, MLX version, macOS version, hashes, and one-click reproduction
+- Community sharing for models, datasets, recipes, experiments, benchmarks, and model cards
+- Collaboration features like shared projects, comments, reviews, approvals, and team workspaces
+- Python API, CLI, local REST API, SDK, WebSocket support, OpenAI-compatible serving, and API playground
+- Future multimodal/voice work: image models, vision-language models, audio models, speech-to-text, text-to-speech, and voice fine-tuning
+- "Magic" features like natural-language model design, automatic dataset recommendations, visual experiment notebooks, drag-and-drop training pipelines, and one-click local deployment
+
+## Suggested User Flow
+
+```text
+Learn
+-> Explore
+-> Create project
+-> Design model
+-> Import data
+-> Clean/analyze data
+-> Configure training
+-> Estimate resources
+-> Train
+-> Watch samples evolve
+-> Inspect checkpoints
+-> Sample/chat
+-> Fine-tune
+-> DPO
+-> Compare
+-> Quantize
+-> Serve locally
+-> Reproduce
+-> Keep experimenting
+```
+
+You can also ignore the flow and click around. The app will survive. Probably.
+
+## Project Layout
+
+```text
 LabLLM/
 ├── Package.swift
+├── Package.resolved
 ├── README.md
-├── AppDelegate.swift              # graceful shutdown
 └── Sources/LabLLM/
     ├── LabLLMApp.swift
+    ├── AppDelegate.swift
     ├── AppState.swift
     ├── Preferences.swift
     ├── LoadingState.swift
+    ├── DataImportState.swift
     ├── Core/
-    │   ├── GPT.swift               # model + loss + LoRA
-    │   ├── Tokenizer.swift         # char/byte/bpe dispatch + special tokens
-    │   ├── BPETokenizer.swift      # real trained BPE
-    │   ├── ChatTemplate.swift      # chat formatting + loss masking
-    │   ├── TextDataset.swift       # pretraining batches
-    │   ├── SFTDataset.swift        # chat batches
-    │   ├── DPODataset.swift        # preference-pair batches
-    │   ├── ConversationImport.swift# JSONL parsing + HF downloader
-    │   ├── Trainer.swift           # pretrain/SFT/DPO loops, resume, shutdown
-    │   ├── Sampler.swift           # decoding + X-ray trace
-    │   ├── Checkpoint.swift        # save/load/quantize/model card
-    │   ├── ModelCard.swift
-    │   ├── EmbeddingMap.swift      # PCA + force layout
-    │   ├── ModelServer.swift       # local HTTP endpoint
-    │   ├── Hardware.swift
-    │   └── Recipes.swift
-    └── Views/                      # one view per section in the sidebar
+    │   ├── GPT.swift
+    │   ├── Trainer.swift
+    │   ├── Sampler.swift
+    │   ├── Tokenizer.swift
+    │   ├── BPETokenizer.swift
+    │   ├── TextDataset.swift
+    │   ├── SFTDataset.swift
+    │   ├── DPODataset.swift
+    │   ├── ConversationImport.swift
+    │   ├── HuggingFaceHub.swift
+    │   ├── Checkpoint.swift
+    │   ├── ModelServer.swift
+    │   └── ...
+    └── Views/
+        └── One SwiftUI view per major sidebar section
 ```
 
+## Should I Use This For Serious Work?
+
+For learning, experiments, small local models, and poking at how training feels: yes.
+
+For replacing a production LLM stack that has monitoring, evals, deployment, governance, and someone on-call with a pager: no. Please do not make the tiny desktop training app responsible for payroll.
+
+## Credits
+
+Built on Apple's MLX and `mlx-swift`.
+
+Also powered by the usual stack of coffee, compiler errors, and the ancient developer ritual of muttering "why is focus broken" at a screen.
+
 ## License
-Your code to use freely. MLX is MIT (Apple).
+
+LabLLM project code: use freely.
+
+MLX is MIT licensed by Apple. Dataset and model licenses depend on what you import, so read the dataset cards before training anything you plan to share.
