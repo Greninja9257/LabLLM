@@ -1,15 +1,15 @@
-title: "[Show & Tell] "
+title: "[Model Gallery] "
 labels: ["show-and-tell"]
 body:
   - type: markdown
     attributes:
       value: |
-        Share what you trained, what data you used, what worked, and what surprised you.
+        Share what you trained, what data you used, what worked, what failed, and the weird little wins.
   - type: input
     id: project
     attributes:
       label: What did you build?
-      placeholder: "A chatty poetry model fine-tuned on public-domain verse"
+      placeholder: "A tiny chat model that writes public-domain-style sea poems"
     validations:
       required: true
   - type: textarea
@@ -22,6 +22,7 @@ body:
         Data:
         Steps:
         LoRA/full fine-tune:
+        Runtime:
   - type: textarea
     id: result
     attributes:
@@ -33,3 +34,4 @@ body:
     id: next
     attributes:
       label: What would you try next?
+      placeholder: "More data mixing, lower learning rate, longer context, better eval prompts..."

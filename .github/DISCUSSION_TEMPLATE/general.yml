@@ -1,16 +1,16 @@
-title: "[General] "
+title: "[Lab Talk] "
 labels: ["discussion"]
 body:
   - type: markdown
     attributes:
       value: |
-        Use General for open-ended LabLLM discussion: workflows, design direction, model-building questions, and community planning.
+        Use Lab Talk for open-ended LabLLM discussion: workflows, design direction, model-building questions, and community planning.
   - type: input
     id: topic
     attributes:
       label: Topic
       description: What do you want to discuss?
-      placeholder: "How should LabLLM organize experiment history?"
+      placeholder: "How should LabLLM make model experiments easier to compare?"
     validations:
       required: true
   - type: textarea
@@ -18,7 +18,7 @@ body:
     attributes:
       label: Context
       description: Give enough background for other people to join in.
-      placeholder: "I am trying to compare checkpoints after a fine-tuning run..."
+      placeholder: "I am trying to compare checkpoints after a fine-tuning run, but the useful info is spread across..."
     validations:
       required: true
   - type: dropdown
@@ -40,3 +40,4 @@ body:
     attributes:
       label: Ideal outcome
       description: What would a useful answer or decision look like?
+      placeholder: "A clearer workflow, a design direction, or a maintainer decision."

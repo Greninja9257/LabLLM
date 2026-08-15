@@ -1,29 +1,41 @@
-title: "[Announcement] "
+title: "[Release] "
 labels: ["announcement"]
 body:
   - type: markdown
     attributes:
       value: |
-        Use this category for maintainer updates: beta releases, roadmap changes, compatibility notes, and important project news.
+        Ship notes, beta updates, roadmap changes, compatibility warnings, and maintainer news here.
   - type: input
     id: headline
     attributes:
       label: Headline
       description: What is the update?
-      placeholder: "LabLLM Beta 0.2 is out"
+      placeholder: "LabLLM Beta 0.2: steadier fine-tuning, better dataset imports"
     validations:
       required: true
   - type: textarea
     id: summary
     attributes:
-      label: Summary
-      description: What changed, and who should care?
-      placeholder: "This release improves fine-tuning stability and adds..."
+      label: What changed?
+      description: "Keep it useful: what changed, who should update, and what might break."
+      placeholder: |
+        Highlights:
+        - 
+
+        Notes:
+        - 
     validations:
       required: true
+  - type: textarea
+    id: testers
+    attributes:
+      label: What should people test?
+      description: Point contributors at the most useful feedback.
+      placeholder: "- Try importing a JSONL fine-tuning dataset and starting a short LoRA run."
   - type: textarea
     id: links
     attributes:
       label: Links
       description: Add release, roadmap, issue, PR, or docs links.
-      placeholder: "- Release: https://github.com/Greninja9257/LabLLM/releases/..."
+      placeholder: |
+        - Release: https://github.com/Greninja9257/LabLLM/releases/...

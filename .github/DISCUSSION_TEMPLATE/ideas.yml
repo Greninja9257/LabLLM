@@ -1,16 +1,16 @@
-title: "[Idea] "
+title: "[Feature Lab] "
 labels: ["idea"]
 body:
   - type: markdown
     attributes:
       value: |
-        Ideas are for feature concepts and product direction. If something is already broken, open a bug issue instead.
+        Feature Lab is for shaping ideas before they become scoped issues or pull requests. If something is already broken, open a bug issue instead.
   - type: input
     id: idea
     attributes:
       label: Idea
       description: Say the idea in one sentence.
-      placeholder: "Add a checkpoint comparison view that replays the same prompt over time"
+      placeholder: "Add a checkpoint time machine that replays the same prompt across training."
     validations:
       required: true
   - type: textarea
@@ -18,7 +18,7 @@ body:
     attributes:
       label: Who is this for?
       description: Describe the user and workflow.
-      placeholder: "As someone fine-tuning a chat model, I want to..."
+      placeholder: "As someone fine-tuning a small chat model, I want to..."
     validations:
       required: true
   - type: textarea
@@ -26,6 +26,7 @@ body:
     attributes:
       label: What should it feel like?
       description: Describe controls, screens, outputs, or examples.
+      placeholder: "A split view with the checkpoint timeline on the left and generations on the right."
   - type: dropdown
     id: complexity
     attributes:
@@ -38,5 +39,5 @@ body:
   - type: textarea
     id: tradeoffs
     attributes:
-      label: Tradeoffs or risks
+      label: Tradeoffs
       description: What could make this confusing, slow, unsafe, or hard to maintain?

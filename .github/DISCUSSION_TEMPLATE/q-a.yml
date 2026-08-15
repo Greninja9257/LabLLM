@@ -1,16 +1,16 @@
-title: "[Q&A] "
+title: "[Help] "
 labels: ["question"]
 body:
   - type: markdown
     attributes:
       value: |
-        Ask how-to questions here. If you found a reproducible crash or bug, use Issues instead.
+        Ask how-to questions here. If LabLLM crashes, freezes, or gives a reproducible error, use Issues instead.
   - type: textarea
     id: question
     attributes:
       label: Question
       description: What are you trying to do?
-      placeholder: "How do I fine-tune a model on multiple JSONL datasets?"
+      placeholder: "How do I fine-tune on multiple JSONL datasets without overfitting?"
     validations:
       required: true
   - type: textarea
@@ -18,6 +18,7 @@ body:
     attributes:
       label: What have you tried?
       description: Include settings, dataset type, or screenshots if helpful.
+      placeholder: "I imported Dolly 15k, set 3 epochs, and the validation loss started climbing..."
   - type: dropdown
     id: area
     attributes:
