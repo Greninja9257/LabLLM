@@ -2,14 +2,8 @@
   <img src="docs/media/captures/labllm-hero.gif" alt="LabLLM animated word field" width="920" />
 </p>
 
-<h1 align="center">LabLLM</h1>
-
 <p align="center">
-  Build, train, fine-tune, sample, and inspect small language models locally on your Mac.
-</p>
-
-<p align="center">
-  <strong>No cloud account. No subscription. No mysterious server eating your dataset.</strong>
+  <strong>A local-first language model workshop for macOS. Your models, datasets, and experiments stay on your Mac.</strong>
 </p>
 
 <p align="center">
