@@ -27,7 +27,11 @@ let package = Package(
                 .product(name: "MLXRandom", package: "mlx-swift"),
                 .product(name: "MLXFast", package: "mlx-swift"),
             ],
-            path: "Sources/LabLLM"
+            path: "Sources/LabLLM",
+            resources: [
+                .copy("Resources/mlx.metallib"),
+                .copy("Resources/default.metallib"),
+            ]
         )
     ]
 )

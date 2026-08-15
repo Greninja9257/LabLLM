@@ -156,6 +156,12 @@ final class AppState: ObservableObject {
 
     func startTraining(resumeFrom: URL? = nil) {
         guard hasCorpus else { datasetImportError = "Choose at least one text corpus before starting training."; return }
+        do {
+            try MLXMetalLibrary.ensureAvailable()
+        } catch {
+            datasetImportError = "Couldn't prepare MLX Metal: \(error.localizedDescription)"
+            return
+        }
         if let resumeFrom, let meta = try? Checkpoint.loadMeta(from: resumeFrom) {
             gptConfig = meta.config
             tokenizer = meta.tokenizer
@@ -169,6 +175,12 @@ final class AppState: ObservableObject {
 
     func startSFT(useLoRA: Bool, resumeFrom: URL? = nil) {
         guard !sftConversations.isEmpty else { datasetImportError = "Add at least one compatible JSONL dataset before starting fine-tuning."; return }
+        do {
+            try MLXMetalLibrary.ensureAvailable()
+        } catch {
+            datasetImportError = "Couldn't prepare MLX Metal: \(error.localizedDescription)"
+            return
+        }
         if let resumeFrom, let meta = try? Checkpoint.loadMeta(from: resumeFrom) {
             gptConfig = meta.config
             tokenizer = meta.tokenizer
@@ -182,12 +194,24 @@ final class AppState: ObservableObject {
     }
 
     func startDPO() {
+        do {
+            try MLXMetalLibrary.ensureAvailable()
+        } catch {
+            datasetImportError = "Couldn't prepare MLX Metal: \(error.localizedDescription)"
+            return
+        }
         loading.begin("Preparing DPO", detail: "Building preference pairs…")
         trainer.startDPO(trainConfig: trainConfig, examples: dpoExamples, hardware: hardware)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { self.loading.end() }
     }
 
     func loadCheckpoint(_ url: URL, meta: Checkpoint.Meta) {
+        do {
+            try MLXMetalLibrary.ensureAvailable()
+        } catch {
+            datasetImportError = "Couldn't prepare MLX Metal: \(error.localizedDescription)"
+            return
+        }
         loading.begin("Loading checkpoint", detail: url.lastPathComponent)
         DispatchQueue.global().async {
             do {

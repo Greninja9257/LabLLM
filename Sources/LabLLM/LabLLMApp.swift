@@ -8,6 +8,10 @@ struct LabLLMApp: App {
     @StateObject private var tutorial = TutorialState()
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
+    init() {
+        _ = try? MLXMetalLibrary.ensureAvailable()
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView()
