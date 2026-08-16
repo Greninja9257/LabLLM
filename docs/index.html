@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="LabLLM is a native macOS lab for training capable language models with Apple MLX." />
+    <meta name="description" content="LabLLM is a native macOS app for training small Transformer and LLM models from scratch with Apple MLX." />
     <meta property="og:title" content="LabLLM" />
     <meta property="og:description" content="Train language models you can actually talk to." />
     <meta property="og:image" content="media/captures/labllm-hero.gif" />
@@ -11,14 +11,19 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <canvas class="word-field" aria-hidden="true"></canvas>
     <div class="cursor-glow" aria-hidden="true"></div>
+
     <header class="site-header">
-      <a class="brand" href="#top" aria-label="LabLLM home"><span class="brand-mark">L</span><span>LabLLM</span></a>
+      <a class="brand" href="#top" aria-label="LabLLM home">
+        <span class="brand-mark">L</span>
+        <span>LabLLM</span>
+      </a>
       <nav class="site-nav" aria-label="Main navigation">
+        <a href="#demo">Demo</a>
         <a href="#workflow">Workflow</a>
-        <a href="#features">Features</a>
+        <a href="#roadmap">Roadmap</a>
         <a href="#contribute">Contribute</a>
-        <a href="#faq">FAQ</a>
       </nav>
       <a class="nav-cta" href="https://github.com/Greninja9257/LabLLM/releases">Download beta</a>
     </header>
@@ -26,43 +31,97 @@
     <main id="top">
       <section class="hero">
         <div class="hero-copy reveal">
-          <p class="eyebrow">Native macOS - Apple MLX - Capable GPTs</p>
-          <h1>Train language models you can talk to.</h1>
+          <p class="eyebrow">SwiftUI / Apple MLX / real training loop</p>
+          <h1>Build a small GPT. Train it. Talk to it.</h1>
           <p class="hero-text">
-            LabLLM turns language-model training into a hands-on workspace: design a model,
-            bring data, train, fine-tune, sample, inspect, and iterate without leaving the app.
+            LabLLM is a native macOS GUI for training small Transformer models from scratch,
+            fine-tuning behavior, inspecting checkpoints, and chatting with the model you trained.
           </p>
-          <div class="hero-actions">
-            <a class="button primary" href="https://github.com/Greninja9257/LabLLM/releases">Get the beta</a>
-            <a class="button secondary" href="https://github.com/Greninja9257/LabLLM">View source</a>
+          <div class="hero-actions" aria-label="Primary actions">
+            <a class="button primary" href="https://github.com/Greninja9257/LabLLM/releases">Download the beta</a>
+            <a class="button secondary" href="https://github.com/Greninja9257/LabLLM">Star on GitHub</a>
+            <a class="button ghost" href="https://github.com/Greninja9257/LabLLM/discussions">Join the lab</a>
           </div>
-          <div class="hero-stats" aria-label="Project highlights">
-            <span><strong>SwiftUI</strong> interface</span>
-            <span><strong>MLX</strong> accelerated</span>
-            <span><strong>JSONL</strong> fine-tuning</span>
+          <div class="signal-strip" aria-label="Project highlights">
+            <span><strong>From scratch</strong> GPT-style training</span>
+            <span><strong>Orange val loss</strong> beside blue train loss</span>
+            <span><strong>Local chat</strong> with saved checkpoints</span>
           </div>
         </div>
-        <div class="hero-visual reveal">
-          <img src="media/captures/labllm-hero.gif" alt="Animated LabLLM word field" />
+
+        <div class="hero-console reveal" id="demo">
+          <div class="window-bar">
+            <span></span><span></span><span></span>
+            <strong>training run</strong>
+          </div>
+          <div class="hero-shot">
+            <img src="media/captures/labllm-hero.gif" alt="Animated LabLLM word field" />
+          </div>
+          <div class="run-grid">
+            <div>
+              <span class="metric-label">tokens/sec</span>
+              <strong class="metric-number" data-count="1860">0</strong>
+            </div>
+            <div>
+              <span class="metric-label">checkpoint</span>
+              <strong>step 1,240</strong>
+            </div>
+            <div>
+              <span class="metric-label">mode</span>
+              <strong>fine-tune</strong>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section class="strip reveal" aria-label="What LabLLM does">
-        <span>Build</span><span>Train</span><span>Fine-tune</span><span>Sample</span><span>Inspect</span><span>Export</span>
+      <section class="install-strip reveal" aria-label="Quick links">
+        <a href="https://github.com/Greninja9257/LabLLM/releases">Download beta</a>
+        <a href="https://github.com/Greninja9257/LabLLM">Star the repo</a>
+        <a href="https://github.com/Greninja9257/LabLLM/blob/master/ROADMAP.md">Read the roadmap</a>
+        <a href="https://github.com/Greninja9257/LabLLM/issues/new/choose">Pick an issue</a>
       </section>
 
-      <section id="workflow" class="section split">
+      <section id="workflow" class="section workflow">
+        <div class="section-heading reveal">
+          <p class="eyebrow">The whole experiment loop</p>
+          <h2>Move from data to a talking checkpoint without rebuilding your workflow.</h2>
+        </div>
+        <div class="workflow-rail">
+          <article class="workflow-card reveal">
+            <span>01</span>
+            <h3>Bring data</h3>
+            <p>Browse Hugging Face datasets, import local text or JSONL, mix sources, and track progress on big downloads.</p>
+          </article>
+          <article class="workflow-card reveal">
+            <span>02</span>
+            <h3>Design the model</h3>
+            <p>Choose a GPT-style preset, tune architecture details, estimate memory, and let Simple mode handle the tokenizer.</p>
+          </article>
+          <article class="workflow-card reveal">
+            <span>03</span>
+            <h3>Train and watch</h3>
+            <p>Follow train loss, validation loss, throughput, checkpoints, ETA, and live samples as the model changes.</p>
+          </article>
+          <article class="workflow-card reveal">
+            <span>04</span>
+            <h3>Sample, chat, continue</h3>
+            <p>Generate inline, chat with checkpoints, continue useful runs, export cards, and keep experiments organized.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section split">
         <div class="section-copy reveal">
-          <p class="eyebrow">Start with the shape of the experiment</p>
-          <h2>From blank project to talking checkpoint.</h2>
+          <p class="eyebrow">Product, not promise</p>
+          <h2>The dashboard is the lab notebook.</h2>
           <p>
-            Pick a model size, browse real datasets, tune the recipe, and watch training
-            unfold with validation loss, progress, and generated samples in the same view.
+            Training should not feel like staring at a terminal and hoping the curve means something.
+            LabLLM keeps metrics, validation, samples, checkpoints, and model management close together.
           </p>
           <ul class="ticks">
-            <li>Simple mode builds the tokenizer when training starts.</li>
-            <li>Advanced mode opens recipes, estimates, and checkpoint management.</li>
-            <li>Expert mode exposes X-Ray, embeddings, serving, and deeper inspection.</li>
+            <li>Blue train loss and orange validation loss are separate curves.</li>
+            <li>Samples appear as a timeline during training and fine-tuning.</li>
+            <li>Checkpoints can be loaded, renamed, continued, compared, and exported.</li>
           </ul>
         </div>
         <figure class="product-frame reveal">
@@ -70,79 +129,137 @@
         </figure>
       </section>
 
+      <section class="section demo-wall">
+        <div class="section-heading reveal">
+          <p class="eyebrow">Tiny live-feeling previews</p>
+          <h2>A few moving pieces from the workbench.</h2>
+        </div>
+        <div class="demo-grid">
+          <article class="mini-app loss-demo reveal" aria-label="Animated loss chart">
+            <div class="mini-title">
+              <strong>Training metrics</strong>
+              <span>step <b class="step-readout">0</b></span>
+            </div>
+            <svg viewBox="0 0 520 220" role="img" aria-label="Training and validation loss curves">
+              <defs>
+                <linearGradient id="chartGlow" x1="0" x2="1">
+                  <stop offset="0" stop-color="#66a6ff" />
+                  <stop offset="1" stop-color="#7af4d5" />
+                </linearGradient>
+              </defs>
+              <path class="grid-line" d="M30 52H492M30 104H492M30 156H492" />
+              <path class="train-line" d="M34 40 C90 76, 122 86, 168 103 S252 124, 304 139 S400 153, 488 166" />
+              <path class="val-line" d="M34 48 C96 82, 134 84, 182 112 S252 137, 316 130 S410 144, 488 151" />
+              <circle class="pulse-dot train-dot" cx="488" cy="166" r="6" />
+              <circle class="pulse-dot val-dot" cx="488" cy="151" r="6" />
+            </svg>
+            <div class="legend">
+              <span><i class="blue"></i>train loss</span>
+              <span><i class="orange"></i>validation loss</span>
+            </div>
+          </article>
+
+          <article class="mini-app sample-demo reveal">
+            <div class="mini-title">
+              <strong>Inline sampling</strong>
+              <span>temperature 0.8</span>
+            </div>
+            <div class="prompt-box">
+              <span class="prompt-muted">Prompt</span>
+              <p>The model opened its eyes and noticed <span class="generated-text"></span></p>
+            </div>
+            <div class="sampler-controls">
+              <span></span><span></span><span></span>
+            </div>
+          </article>
+
+          <article class="mini-app dataset-demo reveal">
+            <div class="mini-title">
+              <strong>Data browser</strong>
+              <span>importable sources</span>
+            </div>
+            <div class="dataset-list">
+              <button class="dataset-row active"><b>Tiny Stories 2</b><span>pre-training</span></button>
+              <button class="dataset-row"><b>Open Assistant OASST1</b><span>fine-tuning</span></button>
+              <button class="dataset-row"><b>GSM8K</b><span>reasoning</span></button>
+            </div>
+          </article>
+        </div>
+      </section>
+
       <section class="section gallery">
         <div class="section-heading reveal">
-          <p class="eyebrow">A real workbench, not a settings maze</p>
-          <h2>Everything has a place.</h2>
+          <p class="eyebrow">Screens from the app</p>
+          <h2>Real tools for real experiments.</h2>
         </div>
         <div class="gallery-grid">
           <article class="visual-card reveal">
             <img src="media/captures/labllm-data.png" alt="Pre-training data browser" loading="lazy" />
             <h3>Bring useful data</h3>
-            <p>Search Hugging Face, preview dataset cards, and import trainable files instead of README fluff.</p>
+            <p>Search, inspect dataset cards, import actual trainable files, and mix sources with row limits or percentages.</p>
           </article>
           <article class="visual-card reveal">
             <img src="media/captures/labllm-models.png" alt="Model manager" loading="lazy" />
             <h3>Keep the good runs</h3>
-            <p>Load, continue, rename, quantize, and compare checkpoints without spelunking through folders.</p>
+            <p>Load, continue, rename, quantize, and compare checkpoints without losing the thread of the experiment.</p>
           </article>
         </div>
       </section>
 
-      <section id="features" class="section feature-band">
-        <div class="section-heading reveal">
-          <p class="eyebrow">Built for people learning by doing</p>
-          <h2>A serious model lab that still feels approachable.</h2>
+      <section id="roadmap" class="section roadmap-preview">
+        <div class="section-copy reveal">
+          <p class="eyebrow">Roadmap tracker</p>
+          <h2>Built, being hardened, and planned.</h2>
+          <p>
+            LabLLM has a lot of surface area, so the roadmap separates working beta features
+            from active correctness work and bigger future ideas.
+          </p>
+          <a class="button secondary" href="https://github.com/Greninja9257/LabLLM/blob/master/ROADMAP.md">Open ROADMAP.md</a>
         </div>
-        <div class="feature-grid">
-          <article class="feature reveal"><span class="feature-icon">01</span><h3>Model Builder</h3><p>GPT-style presets, editable transformer settings, parameter estimates, and architecture validation.</p></article>
-          <article class="feature reveal"><span class="feature-icon">02</span><h3>Dataset Studio</h3><p>Pre-training data, JSONL fine-tuning data, iMessage imports, dataset mixing, row limits, and progress.</p></article>
-          <article class="feature reveal"><span class="feature-icon">03</span><h3>Training Dashboard</h3><p>Loss, orange validation loss, perplexity, throughput, ETA, checkpoints, and a live sample timeline.</p></article>
-          <article class="feature reveal"><span class="feature-icon">04</span><h3>Playgrounds</h3><p>Sampling, chat, X-Ray token probabilities, embeddings, and a local OpenAI-shaped server.</p></article>
+        <div class="roadmap-stack reveal">
+          <article><span class="done">Built</span><strong>Model builder, data import, training, SFT, DPO, sampling, chat, checkpoints.</strong></article>
+          <article><span class="progress">Hardening</span><strong>Reproducible training, validation correctness, dataset windows, padding masks.</strong></article>
+          <article><span class="planned">Planned</span><strong>Evaluation suites, richer comparison, deeper X-Ray tools, automation, reports.</strong></article>
         </div>
-      </section>
-
-      <section class="section manifesto reveal">
-        <p>
-          Build models that learn from your data, fine-tune into natural conversation,
-          and show you what is happening while they improve.
-        </p>
       </section>
 
       <section id="contribute" class="section contribute">
         <div class="section-copy reveal">
           <p class="eyebrow">Pull requests welcome</p>
-          <h2>Help make the lab clearer, stronger, and more useful.</h2>
+          <h2>Help make small-model training easier to trust.</h2>
           <p>
-            Issues, ideas, docs fixes, dataset recipes, UI polish, training experiments, and bug reports
-            are all useful. The repo includes issue templates, a PR template, contribution guidelines,
-            and All Contributors support.
+            The highest-impact work is focused: tests, ML correctness, dataset edge cases,
+            SwiftUI polish, docs, screenshots, recipes, and better explanations for errors.
           </p>
         </div>
         <div class="contribution-links reveal">
-          <a href="https://github.com/Greninja9257/LabLLM/discussions">Join Discussions</a>
-          <a href="https://github.com/Greninja9257/LabLLM/issues/new/choose">Open an issue</a>
-          <a href="https://github.com/Greninja9257/LabLLM/pulls">Open a PR</a>
-          <a href="https://github.com/Greninja9257/LabLLM/blob/master/CONTRIBUTING.md">Read guidelines</a>
+          <a href="https://github.com/Greninja9257/LabLLM/issues/new/choose"><span>01</span>Open an issue</a>
+          <a href="https://github.com/Greninja9257/LabLLM/discussions"><span>02</span>Join discussions</a>
+          <a href="https://github.com/Greninja9257/LabLLM/blob/master/CONTRIBUTING.md"><span>03</span>Read contributing guide</a>
+          <a href="https://github.com/Greninja9257/LabLLM/pulls"><span>04</span>Open a focused PR</a>
         </div>
       </section>
 
-      <section id="faq" class="section faq">
+      <section class="section faq">
         <div class="section-heading reveal">
-          <p class="eyebrow">Practical questions</p>
-          <h2>Mostly practical answers.</h2>
+          <p class="eyebrow">Quick answers</p>
+          <h2>Useful before you download.</h2>
         </div>
         <div class="faq-list">
-          <details class="reveal"><summary>Does it train real models?</summary><p>Yes. It builds GPT-style decoder models with MLX and saves checkpoints you can load back into the app.</p></details>
-          <details class="reveal"><summary>Can models speak naturally?</summary><p>Yes. With good instruction or conversation data, LabLLM can fine-tune models for natural chat inside the app.</p></details>
-          <details class="reveal"><summary>What Mac do I need?</summary><p>macOS 14 or newer on Apple Silicon. More memory gives you more room for bigger experiments.</p></details>
-          <details class="reveal"><summary>Can I contribute?</summary><p>Yes. Open an issue, propose a small focused PR, or add yourself through the All Contributors flow.</p></details>
+          <details class="reveal"><summary>Does it train real models?</summary><p>Yes. LabLLM builds GPT-style decoder models with Apple MLX and saves checkpoints you can load back into the app.</p></details>
+          <details class="reveal"><summary>Can the models talk naturally?</summary><p>Yes, with good instruction or conversation data, you can fine-tune behavior and chat with the result inside LabLLM.</p></details>
+          <details class="reveal"><summary>What Mac do I need?</summary><p>macOS 14 or newer on Apple Silicon. More memory gives you more room for larger experiments.</p></details>
+          <details class="reveal"><summary>Where should contributors start?</summary><p>Core correctness tests, dataset import reliability, tutorial polish, and focused SwiftUI fixes are the best entry points.</p></details>
         </div>
       </section>
 
       <section class="final-cta reveal">
-        <h2>Ready to train a model that talks back?</h2>
-        <a class="button primary" href="https://github.com/Greninja9257/LabLLM/releases">Download the beta</a>
+        <p class="eyebrow">Open source beta</p>
+        <h2>Train a model, watch it learn, then make it answer back.</h2>
+        <div class="hero-actions center">
+          <a class="button primary" href="https://github.com/Greninja9257/LabLLM/releases">Download beta</a>
+          <a class="button secondary" href="https://github.com/Greninja9257/LabLLM">Star on GitHub</a>
+        </div>
       </section>
     </main>
 
@@ -150,6 +267,7 @@
       <span>LabLLM</span>
       <a href="https://github.com/Greninja9257/LabLLM">GitHub</a>
       <a href="https://github.com/Greninja9257/LabLLM/releases">Releases</a>
+      <a href="https://github.com/Greninja9257/LabLLM/blob/master/ROADMAP.md">Roadmap</a>
       <a href="https://github.com/Greninja9257/LabLLM/blob/master/CONTRIBUTING.md">Contribute</a>
     </footer>
 
