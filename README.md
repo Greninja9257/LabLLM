@@ -25,11 +25,15 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-19a47a?style=for-the-badge" alt="MIT License" /></a>
 </p>
 
-## Why LabLLM?
+LabLLM is a native macOS app for building capable language models locally on Apple Silicon.
 
-Training a small language model should feel less like assembling lab equipment in the dark and more like opening a creative tool. LabLLM gives you the whole workshop in one macOS app: browse real datasets, design a GPT-style model, train it, fine-tune it, watch blue training loss and orange validation loss split apart, sample as it learns, chat with the result, manage checkpoints, and keep iterating.
+It is SwiftUI, Apple MLX, and just enough ambition to make your Mac ask, "Are we training a model or cooking the battery?" Mostly the first one. Sometimes both.
 
-Simple mode gets you to a first run without making you choose every knob. Advanced and Expert modes open the controls when you want them. Small models are allowed to be useful, weird, funny, surprisingly smart, and yours.
+This is not a cloud dashboard wearing a fake mustache. Models, datasets, checkpoints, chats, and experiments live on your machine.
+
+## Why?
+
+Because training a small language model should be something you can actually play with. LabLLM puts the model builder, dataset browser, tokenizer, training dashboard, fine-tuning flow, sampler, chat, checkpoints, and model management in one place, so the fun part starts before your patience runs out.
 
 ## A Small Peek
 
