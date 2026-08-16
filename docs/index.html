@@ -63,7 +63,27 @@
             <strong class="hero-state-title">training run</strong>
           </div>
           <div class="hero-shot">
-            <img src="media/captures/labllm-hero.gif" alt="Animated LabLLM word field" />
+            <div class="hero-live-preview" aria-hidden="true">
+              <div class="preview-token-cloud">
+                <span>attention</span>
+                <span>context</span>
+                <span>gradient</span>
+                <span>token</span>
+                <span>checkpoint</span>
+                <span>validation</span>
+                <span>sample</span>
+                <span>predict</span>
+              </div>
+              <svg class="hero-preview-chart" viewBox="0 0 560 260">
+                <path d="M38 54H522M38 112H522M38 170H522M38 228H522" />
+                <path class="hero-train-line" d="M42 58 C104 98, 142 106, 190 130 S290 150, 346 166 S448 185, 520 198" />
+                <path class="hero-val-line" d="M42 70 C108 112, 154 110, 206 142 S286 174, 360 162 S452 176, 520 184" />
+              </svg>
+              <div class="preview-sample">
+                <span>sample</span>
+                <p>The model learns the rhythm of the data, then starts answering back.</p>
+              </div>
+            </div>
             <div class="hero-state-overlay" aria-live="polite">
               <span class="hero-state-kicker">training</span>
               <strong>watch the curve bend</strong>
@@ -238,18 +258,6 @@
               <div><span>validating files</span><b>jsonl/parquet</b></div>
               <i class="progress-bar secondary"><em></em></i>
               <div><span>preview rows</span><b>2,000</b></div>
-            </div>
-          </article>
-
-          <article class="mini-app contributor-demo reveal">
-            <div class="mini-title">
-              <strong>Contributor impact</strong>
-              <span>good first PRs</span>
-            </div>
-            <div class="impact-list">
-              <a href="https://github.com/Greninja9257/LabLLM/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22"><span>ML tests</span><b>dataset windows</b></a>
-              <a href="https://github.com/Greninja9257/LabLLM/issues"><span>SwiftUI polish</span><b>small fixes</b></a>
-              <a href="https://github.com/Greninja9257/LabLLM/discussions"><span>Recipes</span><b>share runs</b></a>
             </div>
           </article>
         </div>
