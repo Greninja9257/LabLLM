@@ -17,18 +17,18 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Greninja9257/LabLLM/releases"><img src="https://img.shields.io/github/v/release/Greninja9257/LabLLM?style=flat-square&label=beta&color=64748b" alt="Latest LabLLM release" /></a>
-  <a href="https://github.com/Greninja9257/LabLLM/commits/master"><img src="https://img.shields.io/github/last-commit/Greninja9257/LabLLM?style=flat-square&label=updated&color=64748b" alt="Last commit" /></a>
-  <a href="https://github.com/Greninja9257/LabLLM"><img src="https://img.shields.io/github/languages/top/Greninja9257/LabLLM?style=flat-square&color=64748b" alt="Top language" /></a>
-  <a href="https://github.com/Greninja9257/LabLLM/issues"><img src="https://img.shields.io/github/issues/Greninja9257/LabLLM?style=flat-square&label=issues&color=64748b" alt="Open issues" /></a>
-  <a href="https://github.com/Greninja9257/LabLLM/discussions"><img src="https://img.shields.io/github/discussions/Greninja9257/LabLLM?style=flat-square&label=discussions&color=64748b" alt="GitHub Discussions" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/Greninja9257/LabLLM?style=flat-square&color=64748b" alt="License" /></a>
-  <a href="https://developer.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-14%2B-64748b?style=flat-square&logo=apple&logoColor=white" alt="macOS 14+" /></a>
-  <a href="https://github.com/ml-explore/mlx-swift"><img src="https://img.shields.io/badge/MLX-Apple%20Silicon-64748b?style=flat-square" alt="MLX on Apple Silicon" /></a>
+  <a href="https://developer.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-14%2B-111827?style=for-the-badge&logo=apple&logoColor=white" alt="macOS 14+" /></a>
+  <a href="https://github.com/Greninja9257/LabLLM/discussions"><img src="https://img.shields.io/github/discussions/Greninja9257/LabLLM?style=for-the-badge&label=discussions&color=2563eb" alt="GitHub Discussions" /></a>
+  <a href="https://github.com/Greninja9257/LabLLM/issues"><img src="https://img.shields.io/github/issues/Greninja9257/LabLLM?style=for-the-badge&label=issues&color=f59e0b" alt="Open issues" /></a>
+  <a href="https://github.com/Greninja9257/LabLLM/forks"><img src="https://img.shields.io/github/forks/Greninja9257/LabLLM?style=for-the-badge&color=10b981" alt="GitHub forks" /></a>
+  <a href="https://github.com/Greninja9257/LabLLM/stargazers"><img src="https://img.shields.io/github/stars/Greninja9257/LabLLM?style=for-the-badge&color=eab308" alt="GitHub stars" /></a>
+  <a href="https://github.com/Greninja9257/LabLLM/commits/master"><img src="https://img.shields.io/github/last-commit/Greninja9257/LabLLM?style=for-the-badge&label=updated&color=8b5cf6" alt="Last commit" /></a>
+  <a href="https://github.com/Greninja9257/LabLLM/graphs/contributors"><img src="https://img.shields.io/github/contributors/Greninja9257/LabLLM?style=for-the-badge&color=ec4899" alt="GitHub contributors" /></a>
 </p>
 
 <p align="center">
-  <strong>Beta software:</strong> LabLLM is moving quickly. Expect rough edges, keep backups of important projects, and please report crashes or confusing behavior.
+  <strong>Warning: LabLLM is beta software.</strong><br/>
+  It can train and fine-tune real models, but it is not a polished final release yet. Expect bugs, missing features, fast-moving updates, and the occasional "why did that happen?" moment. Keep backups of important projects and report anything that breaks.
 </p>
 
 LabLLM is a native macOS app for building capable language models locally on Apple Silicon.
