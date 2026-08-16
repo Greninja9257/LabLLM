@@ -256,6 +256,19 @@ Pull requests, issues, recipes, docs fixes, images, and ideas are welcome. Start
 Thanks goes to these wonderful people:
 
 <!-- ALL-CONTRIBUTORS-LIST:START -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<table>
+  <tbody>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/Greninja9257"><img src="https://avatars.githubusercontent.com/u/169415895?v=4?s=100" width="100px;" alt="Greninja9257"/><br /><sub><b>Greninja9257</b></sub></a><br /><a href="https://github.com/Greninja9257/LabLLM/commits?author=Greninja9257" title="Code">💻</a> <a href="https://github.com/Greninja9257/LabLLM/commits?author=Greninja9257" title="Documentation">📖</a> <a href="#design-Greninja9257" title="Design">🎨</a></td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 
 This project follows the [All Contributors](https://allcontributors.org/) specification. Contributions of any kind are welcome.
