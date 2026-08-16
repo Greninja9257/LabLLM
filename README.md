@@ -29,13 +29,13 @@
 
 LabLLM is a native macOS app for building capable language models locally on Apple Silicon.
 
-It is SwiftUI, Apple MLX, and just enough ambition to make your Mac ask, "Are we training a model or cooking the battery?" Mostly the first one. Sometimes both.
+It is built with SwiftUI and Apple MLX, with a focus on making local model building feel approachable instead of fragile.
 
-This is not a cloud dashboard wearing a fake mustache. Models, datasets, checkpoints, chats, and experiments live on your machine.
+Models, datasets, checkpoints, chats, and experiments live on your machine.
 
 ## Why?
 
-Because training a small language model should be something you can actually play with. LabLLM puts the model builder, dataset browser, tokenizer, training dashboard, fine-tuning flow, sampler, chat, checkpoints, and model management in one place, so the fun part starts before your patience runs out.
+Because training a small language model should be something you can explore directly. LabLLM puts the model builder, dataset browser, tokenizer, training dashboard, fine-tuning flow, sampler, chat, checkpoints, and model management in one place, so you can move from idea to experiment without rebuilding your workflow each time.
 
 ## A Small Peek
 
@@ -45,14 +45,14 @@ Because training a small language model should be something you can actually pla
     <td width="50%"><img src="docs/media/captures/labllm-training.png" alt="LabLLM training dashboard" /></td>
   </tr>
   <tr>
-    <td><strong>Bring data</strong><br/>Search Hugging Face, inspect what you found, then import actual trainable files instead of collecting README confetti.</td>
+    <td><strong>Bring data</strong><br/>Search Hugging Face, inspect what you found, then import actual trainable files with clear metadata and previews.</td>
     <td><strong>Watch learning</strong><br/>Blue train loss, orange validation loss, progress, throughput, and live samples in one place.</td>
   </tr>
   <tr>
     <td colspan="2"><img src="docs/media/captures/labllm-models.png" alt="LabLLM model manager" /></td>
   </tr>
   <tr>
-    <td colspan="2"><strong>Keep the useful runs</strong><br/>Load, continue, rename, quantize, and compare checkpoints without spelunking through folders like it is 2007.</td>
+    <td colspan="2"><strong>Keep the useful runs</strong><br/>Load, continue, rename, quantize, and compare checkpoints without losing track of the experiment.</td>
   </tr>
 </table>
 
@@ -70,7 +70,7 @@ It can train models from scratch, fine-tune them on instruction or conversation 
 - Apple Silicon, M1 or newer
 - Xcode 15+ recommended
 - Swift Package Manager
-- Patience, because compiling MLX for the first time is a small ceremony
+- Time for the first MLX build to complete
 
 The package pins `mlx-swift` to `0.31.6`.
 
@@ -88,7 +88,7 @@ swift package reset
 swift build
 ```
 
-The app bundles the MLX Metal library needed for the SwiftPM build. Full Xcode is still recommended if you want to rebuild MLX itself, because high-performance compute libraries enjoy keeping everyone humble.
+The app bundles the MLX Metal library needed for the SwiftPM build. Full Xcode is still recommended if you want to rebuild MLX itself.
 
 ## What Can It Do Right Now?
 
