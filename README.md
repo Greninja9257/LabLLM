@@ -27,6 +27,10 @@
   <a href="https://github.com/ml-explore/mlx-swift"><img src="https://img.shields.io/badge/MLX-Apple%20Silicon-64748b?style=flat-square" alt="MLX on Apple Silicon" /></a>
 </p>
 
+<p align="center">
+  <strong>Beta software:</strong> LabLLM is moving quickly. Expect rough edges, keep backups of important projects, and please report crashes or confusing behavior.
+</p>
+
 LabLLM is a native macOS app for building capable language models locally on Apple Silicon.
 
 It is SwiftUI, Apple MLX, and just enough ambition to make your Mac ask, "Are we training a model or cooking the battery?" Mostly the first one. Sometimes both.
