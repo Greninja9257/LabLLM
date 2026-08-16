@@ -18,10 +18,11 @@
 
 <p align="center">
   <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-5.9-f05138?style=for-the-badge&logo=swift&logoColor=white" alt="Swift 5.9" /></a>
-  <a href="https://developer.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-14+-111827?style=for-the-badge&logo=apple&logoColor=white" alt="macOS 14+" /></a>
-  <a href="https://github.com/ml-explore/mlx-swift"><img src="https://img.shields.io/badge/Apple%20Silicon-MLX-2f7df6?style=for-the-badge" alt="Apple Silicon MLX" /></a>
+  <a href="https://developer.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-14%2B-111827?style=for-the-badge&logo=apple&logoColor=white" alt="macOS 14+" /></a>
+  <a href="https://github.com/ml-explore/mlx-swift"><img src="https://img.shields.io/badge/MLX-Apple%20Silicon-2f7df6?style=for-the-badge" alt="MLX on Apple Silicon" /></a>
+  <a href="https://github.com/Greninja9257/LabLLM/releases"><img src="https://img.shields.io/github/v/release/Greninja9257/LabLLM?style=for-the-badge&label=Beta&color=7c3aed" alt="Latest LabLLM release" /></a>
+  <a href="https://github.com/Greninja9257/LabLLM/discussions"><img src="https://img.shields.io/badge/Community-Discussions-ffb020?style=for-the-badge&logo=github" alt="GitHub Discussions" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-19a47a?style=for-the-badge" alt="MIT License" /></a>
-  <a href="#contributors"><img src="https://img.shields.io/badge/all_contributors-0-orange.svg?style=for-the-badge" alt="All Contributors" /></a>
 </p>
 
 ## Why LabLLM?
