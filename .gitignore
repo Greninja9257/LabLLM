@@ -7,6 +7,7 @@
 dist/
 default.metallib
 mlx.metallib
+docs/devto-post.md
 
 # macOS metadata
 .DS_Store
