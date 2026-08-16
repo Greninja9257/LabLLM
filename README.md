@@ -11,6 +11,8 @@
   ·
   <a href="https://github.com/Greninja9257/LabLLM/releases"><strong>Download the latest beta</strong></a>
   ·
+  <a href="ROADMAP.md"><strong>Roadmap</strong></a>
+  ·
   <a href="CONTRIBUTING.md"><strong>Contribute</strong></a>
   ·
   <a href="https://github.com/Greninja9257/LabLLM/discussions"><strong>Discussions</strong></a>
