@@ -1,6 +1,8 @@
 import Foundation
 
 enum MLXMetalLibrary {
+    private static let lock = NSLock()
+
     enum BootstrapError: LocalizedError {
         case bundledLibraryMissing
         case executableDirectoryMissing
@@ -17,6 +19,9 @@ enum MLXMetalLibrary {
 
     @discardableResult
     static func ensureAvailable() throws -> URL {
+        lock.lock()
+        defer { lock.unlock() }
+
         guard let bundled = Bundle.module.url(forResource: "mlx", withExtension: "metallib") ??
                 Bundle.module.url(forResource: "default", withExtension: "metallib") else {
             throw BootstrapError.bundledLibraryMissing
@@ -31,6 +36,9 @@ enum MLXMetalLibrary {
 
         try install(bundled, to: preferredURL)
         try install(bundled, to: fallbackURL)
+        let cwd = URL(fileURLWithPath: FileManager.default.currentDirectoryPath, isDirectory: true)
+        try install(bundled, to: cwd.appendingPathComponent("mlx.metallib"))
+        try install(bundled, to: cwd.appendingPathComponent("default.metallib"))
         return preferredURL
     }
 

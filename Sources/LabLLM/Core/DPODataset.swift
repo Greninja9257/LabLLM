@@ -21,22 +21,21 @@ final class DPODataset {
     }
 
     /// Returns chosen (x,y,w) and rejected (x,y,w), each (B, L) / (B, L) / (B, L).
-    func batch(batchSize: Int) -> (chosen: (MLXArray, MLXArray, MLXArray), rejected: (MLXArray, MLXArray, MLXArray)) {
-        var picks: [PreferenceExample] = []
-        for _ in 0 ..< batchSize { picks.append(examples.randomElement() ?? DPODataset.builtin[0]) }
-
-        func encode(_ text: String, from ex: PreferenceExample) -> (ids: [Int32], mask: [Float]) {
-            var conv = ex.context
-            conv.append(ChatMessage(role: .assistant, content: text))
-            return ChatTemplate.encodeConversation(conv, tok: tokenizer)
-        }
+    func batch(batchSize: Int, rng: inout SeededGenerator) -> (chosen: (MLXArray, MLXArray, MLXArray), rejected: (MLXArray, MLXArray, MLXArray)) {
+        let picks = (0 ..< max(batchSize, 1)).map { _ in examples[rng.nextInt(upperBound: examples.count)] }
 
         func pack(_ picks: [PreferenceExample], field: (PreferenceExample) -> String) -> (MLXArray, MLXArray, MLXArray) {
             let L = blockSize
             var xs = [Int32](); var ys = [Int32](); var ws = [Float]()
             for ex in picks {
-                var (ids, mask) = encode(field(ex), from: ex)
-                if ids.count > L + 1 { ids = Array(ids.prefix(L + 1)); mask = Array(mask.prefix(L + 1)) }
+                var (ids, mask) = Self.encode(text: field(ex), from: ex, tokenizer: tokenizer)
+                if ids.count > L + 1 {
+                    let lastLearn = mask.lastIndex { $0 > 0 } ?? (L + 1)
+                    let end = min(ids.count, max(L + 1, lastLearn + 1))
+                    let start = max(0, end - (L + 1))
+                    ids = Array(ids[start ..< end])
+                    mask = Array(mask[start ..< end])
+                }
                 while ids.count < L + 1 { ids.append(tokenizer.padID); mask.append(0) }
                 for i in 0 ..< L { xs.append(ids[i]); ys.append(ids[i + 1]); ws.append(mask[i + 1]) }
             }
@@ -44,6 +43,31 @@ final class DPODataset {
         }
 
         return (pack(picks) { $0.chosen }, pack(picks) { $0.rejected })
+    }
+
+    func encodedPairForTesting(_ ex: PreferenceExample) -> (chosen: (ids: [Int32], mask: [Float]), rejected: (ids: [Int32], mask: [Float])) {
+        (Self.windowed(Self.encode(text: ex.chosen, from: ex, tokenizer: tokenizer), blockSize: blockSize, padID: tokenizer.padID),
+         Self.windowed(Self.encode(text: ex.rejected, from: ex, tokenizer: tokenizer), blockSize: blockSize, padID: tokenizer.padID))
+    }
+
+    private static func encode(text: String, from ex: PreferenceExample, tokenizer: Tokenizer) -> (ids: [Int32], mask: [Float]) {
+        var conv = ex.context
+        conv.append(ChatMessage(role: .assistant, content: text))
+        return ChatTemplate.encodeConversation(conv, tok: tokenizer)
+    }
+
+    private static func windowed(_ encoded: (ids: [Int32], mask: [Float]), blockSize: Int, padID: Int32) -> (ids: [Int32], mask: [Float]) {
+        var ids = encoded.ids
+        var mask = encoded.mask
+        if ids.count > blockSize + 1 {
+            let lastLearn = mask.lastIndex { $0 > 0 } ?? (blockSize + 1)
+            let end = min(ids.count, max(blockSize + 1, lastLearn + 1))
+            let start = max(0, end - (blockSize + 1))
+            ids = Array(ids[start ..< end])
+            mask = Array(mask[start ..< end])
+        }
+        while ids.count < blockSize + 1 { ids.append(padID); mask.append(0) }
+        return (ids, mask)
     }
 
     /// A tiny built-in preference set so DPO is runnable out of the box.

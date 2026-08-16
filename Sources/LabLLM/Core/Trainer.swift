@@ -1,7 +1,6 @@
 import Foundation
 import MLX
 import MLXNN
-import MLXOptimizers
 import MLXRandom
 import Combine
 
@@ -136,33 +135,53 @@ final class Trainer: ObservableObject {
         config.vocabSize = tokenizer.vocabSize
 
         let model: GPT
+        var restoredOptimizerSnapshot: TrainingOptimizerSnapshot? = nil
+        var restoredTrainRNGState: UInt64? = nil
+        var startStep = 1
         if let resumeFrom, let meta = try? Checkpoint.loadMeta(from: resumeFrom),
            let loaded = try? Checkpoint.loadModel(from: resumeFrom, meta: meta) {
             model = loaded
-            publish { self.statusMessage = "Resumed from \(resumeFrom.lastPathComponent)" }
+            let optimizerStep = meta.optimizerStep ?? meta.step
+            restoredOptimizerSnapshot = try? Checkpoint.loadOptimizerSnapshot(from: resumeFrom, step: optimizerStep)
+            restoredTrainRNGState = meta.trainRNGState
+            if restoredOptimizerSnapshot != nil, restoredTrainRNGState != nil {
+                startStep = meta.step + 1
+                publish { self.statusMessage = "Resumed from \(resumeFrom.lastPathComponent)" }
+            } else {
+                publish { self.statusMessage = "Loaded legacy checkpoint weights; optimizer/RNG state unavailable" }
+            }
         } else {
             model = GPT(config); eval(model.parameters())
         }
 
         let dataset = TextDataset(text: corpus, tokenizer: tokenizer, blockSize: config.blockSize)
-        let (optimizer, setLR) = makeOptimizer(tc)
-        let lossAndGrad = valueAndGrad(model: model, languageModelingLoss)
+        var trainRNG = restoredTrainRNGState.map { SeededGenerator(state: $0) }
+            ?? SeededGenerator(seed: tc.seed &+ 0xD1B54A32D192ED03)
+        let optimizer = TrainingOptimizer(config: tc, step: restoredOptimizerSnapshot?.step ?? 0)
+        if let restoredOptimizerSnapshot { optimizer.restore(snapshot: restoredOptimizerSnapshot) }
+        let padID = tokenizer.padID
+        let lossAndGrad = valueAndGrad(model: model) { model, x, y in
+            maskedLanguageModelingLoss(model: model, x: x, y: y, padID: padID)
+        }
 
         self.model = model; self.tokenizer = tokenizer
         publish { self.hasModel = true; self.statusMessage = "Training" }
         let startTime = Date(); var lastReport = Date()
 
-        for s in 1 ... tc.maxSteps {
+        if startStep > tc.maxSteps {
+            publish { self.step = startStep - 1 }
+        } else {
+        for s in startStep ... tc.maxSteps {
             if stopRequested { break }
             while pauseRequested && !stopRequested { Thread.sleep(forTimeInterval: 0.1) }
             if stopRequested { break }
 
-            let lrNow = lrSchedule(step: s, tc: tc); setLR(lrNow)
+            let lrNow = lrSchedule(step: s, tc: tc); optimizer.setLearningRate(lrNow)
             let accumSteps = max(tc.gradAccumSteps, 1)
             var accum: ModuleParameters? = nil
             var lossSum: Float = 0
             for _ in 0 ..< accumSteps {
-                let (x, y) = dataset.batch(batchSize: tc.batchSize)
+                let (x, y) = dataset.batch(batchSize: tc.batchSize, rng: &trainRNG)
                 let (loss, grads) = lossAndGrad(model, x, y)
                 lossSum += loss.item(Float.self)
                 accum = (accum == nil) ? grads : addParams(accum!, grads)
@@ -171,7 +190,7 @@ final class Trainer: ObservableObject {
             var finalGrads = accumSteps > 1 ? accum!.mapValues { $0 / denom } : accum!
             if tc.gradClip > 0 { finalGrads = clipGradNorm(finalGrads, maxNorm: tc.gradClip) }
             optimizer.update(model: model, gradients: finalGrads)
-            eval(model, optimizer)
+            eval(model)
 
             let lossValue = lossSum / denom
             reportStep(s, tc, lossValue, lrNow, tokens: tc.batchSize * config.blockSize * accumSteps,
@@ -185,14 +204,17 @@ final class Trainer: ObservableObject {
             if s % tc.checkpointEvery == 0 {
                 saveCheckpoint(model: model, config: config, tokenizer: tokenizer, step: s,
                               loss: lossValue, valLoss: Float(valLoss), method: "Pretraining",
-                              datasetName: datasetName, hardware: hardware, name: "pretrain-\(s)-\(Int(Date().timeIntervalSince1970))")
+                              datasetName: datasetName, hardware: hardware, name: "pretrain-\(s)-\(Int(Date().timeIntervalSince1970))",
+                              trainConfig: tc, optimizerSnapshot: optimizer.snapshot(), trainRNGState: trainRNG.state)
             }
+        }
         }
 
         let final = saveCheckpoint(model: model, config: config, tokenizer: tokenizer, step: self.step,
                                    loss: Float(trainLoss), valLoss: Float(valLoss), method: "Pretraining",
                                    datasetName: datasetName, hardware: hardware,
-                                   name: "pretrain-final-\(Int(Date().timeIntervalSince1970))")
+                                   name: "pretrain-final-\(Int(Date().timeIntervalSince1970))",
+                                   trainConfig: tc, optimizerSnapshot: optimizer.snapshot(), trainRNGState: trainRNG.state)
         publish {
             self.isTraining = false
             self.statusMessage = self.stopRequested ? "Stopped at step \(self.step) — progress saved"
@@ -221,9 +243,20 @@ final class Trainer: ObservableObject {
         config.vocabSize = tokenizer.vocabSize
 
         let model: GPT
+        var restoredOptimizerSnapshot: TrainingOptimizerSnapshot? = nil
+        var restoredTrainRNGState: UInt64? = nil
+        var startStep = 1
         if let resumeFrom, let meta = try? Checkpoint.loadMeta(from: resumeFrom),
            let loaded = try? Checkpoint.loadModel(from: resumeFrom, meta: meta) {
             model = loaded
+            let optimizerStep = meta.optimizerStep ?? meta.step
+            restoredOptimizerSnapshot = try? Checkpoint.loadOptimizerSnapshot(from: resumeFrom, step: optimizerStep)
+            restoredTrainRNGState = meta.trainRNGState
+            if restoredOptimizerSnapshot != nil, restoredTrainRNGState != nil {
+                startStep = meta.step + 1
+            } else {
+                publish { self.statusMessage = "Loaded legacy checkpoint weights; optimizer/RNG state unavailable" }
+            }
         } else if let existing = self.model, existing.config.vocabSize == config.vocabSize,
                   existing.config.nEmbd == config.nEmbd, existing.config.nLayers == config.nLayers {
             model = existing
@@ -234,7 +267,10 @@ final class Trainer: ObservableObject {
         publish { self.runIsLoRA = model.hasLoRA }
 
         let dataset = SFTDataset(conversations: conversations, tokenizer: tokenizer, blockSize: config.blockSize)
-        let (optimizer, setLR) = makeOptimizer(tc)
+        var trainRNG = restoredTrainRNGState.map { SeededGenerator(state: $0) }
+            ?? SeededGenerator(seed: tc.seed &+ 0xA24BAED4963EE407)
+        let optimizer = TrainingOptimizer(config: tc, step: restoredOptimizerSnapshot?.step ?? 0)
+        if let restoredOptimizerSnapshot { optimizer.restore(snapshot: restoredOptimizerSnapshot) }
         let padID = tokenizer.padID
         let sftVG = valueAndGrad { (parameters: ModuleParameters, arrays: [MLXArray]) -> [MLXArray] in
             model.update(parameters: parameters)
@@ -250,13 +286,16 @@ final class Trainer: ObservableObject {
         let sampleEvery = max(1, tc.sampleEvery)
         let checkpointEvery = max(1, tc.checkpointEvery)
 
-        for s in 1 ... maxSteps {
+        if startStep > maxSteps {
+            publish { self.step = startStep - 1 }
+        } else {
+        for s in startStep ... maxSteps {
             if stopRequested { break }
             while pauseRequested && !stopRequested { Thread.sleep(forTimeInterval: 0.1) }
             if stopRequested { break }
 
-            let lrNow = lrSchedule(step: s, tc: tc); setLR(lrNow)
-            let (x, y) = dataset.batch(batchSize: tc.batchSize)
+            let lrNow = lrSchedule(step: s, tc: tc); optimizer.setLearningRate(lrNow)
+            let (x, y) = dataset.batch(batchSize: tc.batchSize, rng: &trainRNG)
             let loss: MLXArray
             let grads: ModuleParameters
             do {
@@ -281,7 +320,7 @@ final class Trainer: ObservableObject {
             }
             let finalGrads = tc.gradClip > 0 ? clipGradNorm(grads, maxNorm: tc.gradClip) : grads
             optimizer.update(model: model, gradients: finalGrads)
-            eval(model, optimizer)
+            eval(model)
 
             let lossValue = loss.item(Float.self)
             reportStep(s, tc, lossValue, lrNow, tokens: tc.batchSize * config.blockSize,
@@ -298,15 +337,18 @@ final class Trainer: ObservableObject {
                               valLoss: Float(valLoss), method: model.hasLoRA ? "SFT (LoRA)" : "SFT (full)",
                               datasetName: datasetName, hardware: hardware,
                               name: "sft-\(s)-\(Int(Date().timeIntervalSince1970))",
-                              loraRank: model.hasLoRA ? tc.loraRank : nil, loraAlpha: model.hasLoRA ? tc.loraAlpha : nil)
+                              loraRank: model.hasLoRA ? tc.loraRank : nil, loraAlpha: model.hasLoRA ? tc.loraAlpha : nil,
+                              trainConfig: tc, optimizerSnapshot: optimizer.snapshot(), trainRNGState: trainRNG.state)
             }
+        }
         }
 
         let final = saveCheckpoint(model: model, config: config, tokenizer: tokenizer, step: self.step,
                                    loss: Float(trainLoss), valLoss: Float(valLoss),
                                    method: model.hasLoRA ? "SFT (LoRA)" : "SFT (full)", datasetName: datasetName,
                                    hardware: hardware, name: "sft-final-\(Int(Date().timeIntervalSince1970))",
-                                   loraRank: model.hasLoRA ? tc.loraRank : nil, loraAlpha: model.hasLoRA ? tc.loraAlpha : nil)
+                                   loraRank: model.hasLoRA ? tc.loraRank : nil, loraAlpha: model.hasLoRA ? tc.loraAlpha : nil,
+                                   trainConfig: tc, optimizerSnapshot: optimizer.snapshot(), trainRNGState: trainRNG.state)
         publish {
             self.isTraining = false
             self.statusMessage = self.stopRequested ? "Stopped at step \(self.step) — progress saved"
@@ -338,7 +380,8 @@ final class Trainer: ObservableObject {
         eval(reference); reference.freeze()
 
         let dataset = DPODataset(examples: examples, tokenizer: tokenizer, blockSize: policy.config.blockSize)
-        let (optimizer, setLR) = makeOptimizer(tc)
+        var trainRNG = SeededGenerator(seed: tc.seed &+ 0x9FB21C651E98DF25)
+        let optimizer = TrainingOptimizer(config: tc)
         let beta = tc.dpoBeta
 
         let dpoVG = valueAndGrad(model: policy) { (m: GPT, arrs: [MLXArray]) -> [MLXArray] in
@@ -354,13 +397,13 @@ final class Trainer: ObservableObject {
             while pauseRequested && !stopRequested { Thread.sleep(forTimeInterval: 0.1) }
             if stopRequested { break }
 
-            let lrNow = lrSchedule(step: s, tc: tc); setLR(lrNow)
-            let (chosen, rejected) = dataset.batch(batchSize: tc.batchSize)
+            let lrNow = lrSchedule(step: s, tc: tc); optimizer.setLearningRate(lrNow)
+            let (chosen, rejected) = dataset.batch(batchSize: tc.batchSize, rng: &trainRNG)
             let args = [chosen.0, chosen.1, chosen.2, rejected.0, rejected.1, rejected.2]
             let (vals, grads) = dpoVG(policy, args)
             let finalGrads = tc.gradClip > 0 ? clipGradNorm(grads, maxNorm: tc.gradClip) : grads
             optimizer.update(model: policy, gradients: finalGrads)
-            eval(policy, optimizer)
+            eval(policy)
 
             let lossValue = vals[0].item(Float.self)
             reportStep(s, tc, lossValue, lrNow, tokens: tc.batchSize * policy.config.blockSize * 2,
@@ -369,13 +412,15 @@ final class Trainer: ObservableObject {
             if s % tc.checkpointEvery == 0 {
                 saveCheckpoint(model: policy, config: policy.config, tokenizer: tokenizer, step: s, loss: lossValue,
                               valLoss: 0, method: "DPO", datasetName: "Preference pairs", hardware: hardware,
-                              name: "dpo-\(s)-\(Int(Date().timeIntervalSince1970))")
+                              name: "dpo-\(s)-\(Int(Date().timeIntervalSince1970))",
+                              trainConfig: tc, optimizerSnapshot: optimizer.snapshot(), trainRNGState: trainRNG.state)
             }
         }
 
         let final = saveCheckpoint(model: policy, config: policy.config, tokenizer: tokenizer, step: self.step,
                                    loss: Float(trainLoss), valLoss: 0, method: "DPO", datasetName: "Preference pairs",
-                                   hardware: hardware, name: "dpo-final-\(Int(Date().timeIntervalSince1970))")
+                                   hardware: hardware, name: "dpo-final-\(Int(Date().timeIntervalSince1970))",
+                                   trainConfig: tc, optimizerSnapshot: optimizer.snapshot(), trainRNGState: trainRNG.state)
         publish {
             self.isTraining = false
             self.statusMessage = self.stopRequested ? "Stopped at step \(self.step) — progress saved"
@@ -513,17 +558,6 @@ final class Trainer: ObservableObject {
         }
     }
 
-    private func makeOptimizer(_ tc: TrainConfig) -> (Optimizer, (Float) -> Void) {
-        switch tc.optimizer {
-        case .adamw:
-            let o = AdamW(learningRate: tc.learningRate, weightDecay: tc.weightDecay)
-            return (o, { o.learningRate = $0 })
-        case .sgd:
-            let o = SGD(learningRate: tc.learningRate, weightDecay: tc.weightDecay)
-            return (o, { o.learningRate = $0 })
-        }
-    }
-
     private func reportStep(_ s: Int, _ tc: TrainConfig, _ lossValue: Float, _ lrNow: Float, tokens: Int,
                             lastReport: inout Date, startTime: Date) {
         let dt = Date().timeIntervalSince(lastReport); lastReport = Date()
@@ -557,12 +591,20 @@ final class Trainer: ObservableObject {
     @discardableResult
     private func saveCheckpoint(model: GPT, config: GPTConfig, tokenizer: Tokenizer, step: Int, loss: Float,
                                 valLoss: Float, method: String, datasetName: String?, hardware: HardwareInfo,
-                                name: String, loraRank: Int? = nil, loraAlpha: Float? = nil) -> URL? {
+                                name: String, loraRank: Int? = nil, loraAlpha: Float? = nil,
+                                trainConfig: TrainConfig? = nil,
+                                optimizerSnapshot: TrainingOptimizerSnapshot? = nil,
+                                trainRNGState: UInt64? = nil) -> URL? {
         let meta = Checkpoint.Meta(config: config, tokenizer: tokenizer, step: step, loss: loss, valLoss: valLoss,
                                    createdAt: Date(), method: method, datasetName: datasetName,
-                                   loraRank: loraRank, loraAlpha: loraAlpha)
+                                   loraRank: loraRank, loraAlpha: loraAlpha,
+                                   trainingConfig: trainConfig,
+                                   optimizerStep: optimizerSnapshot?.step,
+                                   trainRNGState: trainRNGState,
+                                   checkpointFormatVersion: 2)
         do {
-            let dir = try Checkpoint.save(model: model, meta: meta, name: name, hardware: hardware)
+            let dir = try Checkpoint.save(model: model, meta: meta, name: name, hardware: hardware,
+                                          optimizerSnapshot: optimizerSnapshot)
             publish { self.lastCheckpointDir = dir }
             return dir
         } catch {
@@ -580,24 +622,26 @@ final class Trainer: ObservableObject {
 
     private func estimateValLoss(model: GPT, dataset: TextDataset, batchSize: Int, batches: Int = 5) -> Float {
         var total: Float = 0
-        for _ in 0 ..< batches {
-            let (x, y) = dataset.batch(batchSize: batchSize, validation: true)
-            let l = languageModelingLoss(model: model, x: x, y: y)
+        let fixedBatches = dataset.fixedValidationBatches(batchSize: batchSize, maxBatches: batches)
+        guard !fixedBatches.isEmpty else { return 0 }
+        for (x, y) in fixedBatches {
+            let l = maskedLanguageModelingLoss(model: model, x: x, y: y, padID: dataset.tokenizer.padID)
             eval(l)
             total += l.item(Float.self)
         }
-        return total / Float(batches)
+        return total / Float(fixedBatches.count)
     }
 
     private func estimateSFTValLoss(model: GPT, dataset: SFTDataset, batchSize: Int, batches: Int = 5) -> Float {
         var total: Float = 0
-        for _ in 0 ..< batches {
-            let (x, y) = dataset.batch(batchSize: batchSize, validation: true)
+        let fixedBatches = dataset.fixedValidationBatches(batchSize: batchSize, maxBatches: batches)
+        guard !fixedBatches.isEmpty else { return 0 }
+        for (x, y) in fixedBatches {
             let loss = sftLoss(model: model, x: x, y: y, padID: dataset.padID)
             eval(loss)
             total += loss.item(Float.self)
         }
-        return total / Float(batches)
+        return total / Float(fixedBatches.count)
     }
 
     private func addParams(_ a: ModuleParameters, _ b: ModuleParameters) -> ModuleParameters {

@@ -32,6 +32,15 @@ let package = Package(
                 .copy("Resources/mlx.metallib"),
                 .copy("Resources/default.metallib"),
             ]
+        ),
+        .testTarget(
+            name: "LabLLMCoreTests",
+            dependencies: [
+                "LabLLM",
+                .product(name: "MLX", package: "mlx-swift"),
+                .product(name: "MLXNN", package: "mlx-swift"),
+            ],
+            path: "Tests/LabLLMCoreTests"
         )
     ]
 )

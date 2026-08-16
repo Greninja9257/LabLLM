@@ -33,15 +33,32 @@ final class SFTDataset {
     /// Returns (x, y): x,y are Int32 (B, L). Non-learning targets are encoded as
     /// padID so the loss can derive its mask while using MLX's stable two-array
     /// value-and-grad wrapper.
-    func batch(batchSize: Int, validation: Bool = false) -> (MLXArray, MLXArray) {
+    func batch(batchSize: Int, validation: Bool = false, rng: inout SeededGenerator) -> (MLXArray, MLXArray) {
+        let source = validation && !validationConversations.isEmpty ? validationConversations : trainingConversations
+        let indices = (0 ..< max(batchSize, 1)).map { _ in rng.nextInt(upperBound: source.count) }
+        return batch(indices: indices, validation: validation)
+    }
+
+    func fixedValidationBatches(batchSize: Int, maxBatches: Int = 5) -> [(MLXArray, MLXArray)] {
+        guard !validationConversations.isEmpty else { return [] }
+        let count = min(validationConversations.count, max(batchSize, 1) * max(maxBatches, 1))
+        let indices = Array(0 ..< count)
+        let chunkSize = max(batchSize, 1)
+        return stride(from: 0, to: indices.count, by: chunkSize).map { offset in
+            let chunk = Array(indices[offset ..< min(offset + chunkSize, indices.count)])
+            return batch(indices: chunk, validation: true)
+        }
+    }
+
+    private func batch(indices: [Int], validation: Bool = false) -> (MLXArray, MLXArray) {
         let L = blockSize
-        let B = max(batchSize, 1)
+        let B = max(indices.count, 1)
         var xs = [Int32](); var ys = [Int32]()
         xs.reserveCapacity(B * L); ys.reserveCapacity(B * L)
 
-        for _ in 0 ..< B {
-            let source = validation && !validationConversations.isEmpty ? validationConversations : trainingConversations
-            guard let conv = source.randomElement() else { continue }
+        let source = validation && !validationConversations.isEmpty ? validationConversations : trainingConversations
+        for rawIndex in indices.isEmpty ? [0] : indices {
+            let conv = source[min(max(rawIndex, 0), source.count - 1)]
             var (ids, mask) = ChatTemplate.encodeConversation(conv, tok: tokenizer)
 
             // Need L+1 tokens to form (x, y). For long conversations, keep a

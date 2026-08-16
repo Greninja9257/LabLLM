@@ -5,6 +5,8 @@
 .swiftpm/
 .vscode/
 dist/
+default.metallib
+mlx.metallib
 
 # macOS metadata
 .DS_Store

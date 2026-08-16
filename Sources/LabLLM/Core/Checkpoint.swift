@@ -37,6 +37,10 @@ enum Checkpoint {
         var loraRank: Int? = nil               // set when this checkpoint has LoRA adapters
         var loraAlpha: Float? = nil
         var quantizedBits: Int? = nil
+        var trainingConfig: TrainConfig? = nil
+        var optimizerStep: Int? = nil
+        var trainRNGState: UInt64? = nil
+        var checkpointFormatVersion: Int? = nil
     }
 
     static func directory() -> URL {
@@ -47,7 +51,8 @@ enum Checkpoint {
     }
 
     @discardableResult
-    static func save(model: GPT, meta: Meta, name: String, hardware: HardwareInfo? = nil) throws -> URL {
+    static func save(model: GPT, meta: Meta, name: String, hardware: HardwareInfo? = nil,
+                     optimizerSnapshot: TrainingOptimizerSnapshot? = nil) throws -> URL {
         let dir = directory().appendingPathComponent(name, isDirectory: true)
         do {
             try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -60,6 +65,9 @@ enum Checkpoint {
             if model.hasLoRA {
                 let loraOnly = Dictionary(uniqueKeysWithValues: flat.filter { GPT.isLoRAKey($0.0) })
                 try MLX.save(arrays: loraOnly, url: dir.appendingPathComponent("adapter.safetensors"))
+            }
+            if let optimizerSnapshot, !optimizerSnapshot.arrays.isEmpty {
+                try MLX.save(arrays: optimizerSnapshot.arrays, url: dir.appendingPathComponent("optimizer.safetensors"))
             }
         } catch { throw CheckpointError.weightsWriteFailed(error.localizedDescription) }
 
@@ -103,6 +111,16 @@ enum Checkpoint {
         model.update(parameters: ModuleParameters.unflattened(weights))
         eval(model)
         return model
+    }
+
+    static func loadOptimizerSnapshot(from dir: URL, step: Int) throws -> TrainingOptimizerSnapshot? {
+        let url = dir.appendingPathComponent("optimizer.safetensors")
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        do {
+            return TrainingOptimizerSnapshot(arrays: try MLX.loadArrays(url: url), step: step)
+        } catch {
+            throw CheckpointError.weightsReadFailed("optimizer: \(error.localizedDescription)")
+        }
     }
 
     static func list() -> [URL] {

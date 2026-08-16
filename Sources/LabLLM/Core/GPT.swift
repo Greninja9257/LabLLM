@@ -211,9 +211,16 @@ final class GPT: Module {
 // MARK: - Loss (matches valueAndGrad(model:_:) 2-array signature)
 
 func languageModelingLoss(model: GPT, x: MLXArray, y: MLXArray) -> MLXArray {
+    maskedLanguageModelingLoss(model: model, x: x, y: y, padID: nil)
+}
+
+func maskedLanguageModelingLoss(model: GPT, x: MLXArray, y: MLXArray, padID: Int32?) -> MLXArray {
     let logits = model(x)                       // (B, L, V)
     let B = logits.dim(0), L = logits.dim(1), V = logits.dim(2)
     let flat = logits.reshaped([B * L, V])
     let targets = y.reshaped([B * L])
-    return crossEntropy(logits: flat, targets: targets, reduction: .mean)
+    let perTok = crossEntropy(logits: flat, targets: targets, reduction: .none)
+    guard let padID else { return perTok.mean() }
+    let wt = (targets .!= padID).asType(Float.self)
+    return (perTok * wt).sum() / maximum(wt.sum(), MLXArray(Float(1e-6)))
 }
