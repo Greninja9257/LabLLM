@@ -3,10 +3,25 @@
   "projectOwner": "Greninja9257",
   "repoType": "github",
   "repoHost": "https://github.com",
-  "files": ["README.md"],
+  "files": [
+    "README.md"
+  ],
   "imageSize": 100,
   "commit": false,
   "commitConvention": "none",
-  "contributors": [],
-  "contributorsPerLine": 7
+  "contributors": [
+    {
+      "login": "Greninja9257",
+      "name": "Greninja9257",
+      "avatar_url": "https://avatars.githubusercontent.com/u/169415895?v=4",
+      "profile": "https://github.com/Greninja9257",
+      "contributions": [
+        "code",
+        "doc",
+        "design"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7,
+  "commitType": "docs"
 }
