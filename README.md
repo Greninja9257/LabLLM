@@ -17,12 +17,10 @@
 </p>
 
 <p align="center">
-  <a href="https://developer.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-14%2B-111827?style=for-the-badge&logo=apple&logoColor=white" alt="macOS 14+" /></a>
   <a href="https://github.com/Greninja9257/LabLLM/discussions"><img src="https://img.shields.io/github/discussions/Greninja9257/LabLLM?style=for-the-badge&label=discussions&color=2563eb" alt="GitHub Discussions" /></a>
   <a href="https://github.com/Greninja9257/LabLLM/issues"><img src="https://img.shields.io/github/issues/Greninja9257/LabLLM?style=for-the-badge&label=issues&color=f59e0b" alt="Open issues" /></a>
-  <a href="https://github.com/Greninja9257/LabLLM/forks"><img src="https://img.shields.io/github/forks/Greninja9257/LabLLM?style=for-the-badge&color=10b981" alt="GitHub forks" /></a>
+  <a href="https://github.com/Greninja9257/LabLLM/pulls"><img src="https://img.shields.io/github/issues-pr/Greninja9257/LabLLM?style=for-the-badge&label=pull%20requests&color=10b981" alt="Open pull requests" /></a>
   <a href="https://github.com/Greninja9257/LabLLM/stargazers"><img src="https://img.shields.io/github/stars/Greninja9257/LabLLM?style=for-the-badge&color=eab308" alt="GitHub stars" /></a>
-  <a href="https://github.com/Greninja9257/LabLLM/commits/master"><img src="https://img.shields.io/github/last-commit/Greninja9257/LabLLM?style=for-the-badge&label=updated&color=8b5cf6" alt="Last commit" /></a>
   <a href="https://github.com/Greninja9257/LabLLM/graphs/contributors"><img src="https://img.shields.io/github/contributors/Greninja9257/LabLLM?style=for-the-badge&color=ec4899" alt="GitHub contributors" /></a>
 </p>
 
