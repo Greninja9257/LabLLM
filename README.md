@@ -27,11 +27,9 @@
 > [!WARNING]
 > **LabLLM is beta software.** This build can train and fine-tune real models, but it is **not** representative of the final product. Expect bugs, missing features, and fast-moving updates. Keep backups of important projects and report anything that breaks.
 
-LabLLM is a native macOS app for building capable language models locally on Apple Silicon.
+LabLLM is a free, native macOS GUI for training small Transformer and LLM models from scratch with your own datasets. Build a GPT-style model with random initialization, train it with Apple Silicon and MLX, inspect live training metrics, save checkpoints, continue experiments, fine-tune behavior, and chat with the model you trained.
 
-It is built with SwiftUI and Apple MLX, with a focus on making local model building feel approachable instead of fragile.
-
-Models, datasets, checkpoints, chats, and experiments live on your machine.
+It is built with SwiftUI and Apple MLX for people who want the full model-building loop in one place: data, tokenizer, architecture, training, fine-tuning, sampling, chat, checkpoints, and model management. Models, datasets, checkpoints, chats, and experiments stay on your machine.
 
 ## Why?
 
