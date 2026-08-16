@@ -1,8 +1,7 @@
 ---
 title: "I built a native macOS app for training small language models"
-published: false
-description: "LabLLM is a free SwiftUI + MLX app for building, training, fine-tuning, and chatting with small Transformer models on Apple Silicon."
-tags: machinelearning, swift, opensource, macos
+published: true
+tags: ai, webdev, programming, opensource
 cover_image: https://raw.githubusercontent.com/Greninja9257/LabLLM/master/docs/media/captures/labllm-hero.gif
 ---
 
