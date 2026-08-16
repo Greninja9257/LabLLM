@@ -26,10 +26,8 @@
   <a href="https://github.com/Greninja9257/LabLLM/graphs/contributors"><img src="https://img.shields.io/github/contributors/Greninja9257/LabLLM?style=for-the-badge&color=ec4899" alt="GitHub contributors" /></a>
 </p>
 
-<p align="center">
-  <strong>Warning: LabLLM is beta software.</strong><br/>
-  It can train and fine-tune real models, but it is not a polished final release yet. Expect bugs, missing features, fast-moving updates, and the occasional "why did that happen?" moment. Keep backups of important projects and report anything that breaks.
-</p>
+> [!WARNING]
+> **LabLLM is beta software.** This build can train and fine-tune real models, but it is **not** representative of the final product. Expect bugs, missing features, and fast-moving updates. Keep backups of important projects and report anything that breaks.
 
 LabLLM is a native macOS app for building capable language models locally on Apple Silicon.
 
