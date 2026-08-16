@@ -17,12 +17,14 @@
 </p>
 
 <p align="center">
-  <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-5.9-f05138?style=for-the-badge&logo=swift&logoColor=white" alt="Swift 5.9" /></a>
-  <a href="https://developer.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-14%2B-111827?style=for-the-badge&logo=apple&logoColor=white" alt="macOS 14+" /></a>
-  <a href="https://github.com/ml-explore/mlx-swift"><img src="https://img.shields.io/badge/MLX-Apple%20Silicon-2f7df6?style=for-the-badge" alt="MLX on Apple Silicon" /></a>
-  <a href="https://github.com/Greninja9257/LabLLM/releases"><img src="https://img.shields.io/github/v/release/Greninja9257/LabLLM?style=for-the-badge&label=Beta&color=7c3aed" alt="Latest LabLLM release" /></a>
-  <a href="https://github.com/Greninja9257/LabLLM/discussions"><img src="https://img.shields.io/badge/Community-Discussions-ffb020?style=for-the-badge&logo=github" alt="GitHub Discussions" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-19a47a?style=for-the-badge" alt="MIT License" /></a>
+  <a href="https://github.com/Greninja9257/LabLLM/releases"><img src="https://img.shields.io/github/v/release/Greninja9257/LabLLM?style=flat-square&label=beta&color=64748b" alt="Latest LabLLM release" /></a>
+  <a href="https://github.com/Greninja9257/LabLLM/commits/master"><img src="https://img.shields.io/github/last-commit/Greninja9257/LabLLM?style=flat-square&label=updated&color=64748b" alt="Last commit" /></a>
+  <a href="https://github.com/Greninja9257/LabLLM"><img src="https://img.shields.io/github/languages/top/Greninja9257/LabLLM?style=flat-square&color=64748b" alt="Top language" /></a>
+  <a href="https://github.com/Greninja9257/LabLLM/issues"><img src="https://img.shields.io/github/issues/Greninja9257/LabLLM?style=flat-square&label=issues&color=64748b" alt="Open issues" /></a>
+  <a href="https://github.com/Greninja9257/LabLLM/discussions"><img src="https://img.shields.io/github/discussions/Greninja9257/LabLLM?style=flat-square&label=discussions&color=64748b" alt="GitHub Discussions" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Greninja9257/LabLLM?style=flat-square&color=64748b" alt="License" /></a>
+  <a href="https://developer.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-14%2B-64748b?style=flat-square&logo=apple&logoColor=white" alt="macOS 14+" /></a>
+  <a href="https://github.com/ml-explore/mlx-swift"><img src="https://img.shields.io/badge/MLX-Apple%20Silicon-64748b?style=flat-square" alt="MLX on Apple Silicon" /></a>
 </p>
 
 LabLLM is a native macOS app for building capable language models locally on Apple Silicon.
