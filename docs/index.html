@@ -42,6 +42,14 @@
             <a class="button secondary" href="https://github.com/Greninja9257/LabLLM">Star on GitHub</a>
             <a class="button ghost" href="https://github.com/Greninja9257/LabLLM/discussions">Join the lab</a>
           </div>
+          <div class="live-badges" aria-label="Live GitHub project stats">
+            <a href="https://github.com/Greninja9257/LabLLM/stargazers"><img src="https://img.shields.io/github/stars/Greninja9257/LabLLM?style=for-the-badge&label=stars&color=66a6ff&labelColor=102033" alt="GitHub stars" /></a>
+            <a href="https://github.com/Greninja9257/LabLLM/issues"><img src="https://img.shields.io/github/issues/Greninja9257/LabLLM?style=for-the-badge&label=issues&color=ffad57&labelColor=102033" alt="Open issues" /></a>
+            <a href="https://github.com/Greninja9257/LabLLM/pulls"><img src="https://img.shields.io/github/issues-pr/Greninja9257/LabLLM?style=for-the-badge&label=prs&color=76f2d4&labelColor=102033" alt="Open pull requests" /></a>
+            <a href="https://github.com/Greninja9257/LabLLM/graphs/contributors"><img src="https://img.shields.io/github/contributors/Greninja9257/LabLLM?style=for-the-badge&label=contributors&color=ff8bc7&labelColor=102033" alt="GitHub contributors" /></a>
+            <a href="https://github.com/Greninja9257/LabLLM/discussions"><img src="https://img.shields.io/github/discussions/Greninja9257/LabLLM?style=for-the-badge&label=discussions&color=9be58e&labelColor=102033" alt="GitHub Discussions" /></a>
+            <a href="https://github.com/Greninja9257/LabLLM/releases"><img src="https://img.shields.io/github/v/release/Greninja9257/LabLLM?include_prereleases&style=for-the-badge&label=latest&color=eab308&labelColor=102033" alt="Latest release" /></a>
+          </div>
           <div class="signal-strip" aria-label="Project highlights">
             <span><strong>From scratch</strong> GPT-style training</span>
             <span><strong>Orange val loss</strong> beside blue train loss</span>
@@ -52,23 +60,28 @@
         <div class="hero-console reveal" id="demo">
           <div class="window-bar">
             <span></span><span></span><span></span>
-            <strong>training run</strong>
+            <strong class="hero-state-title">training run</strong>
           </div>
           <div class="hero-shot">
             <img src="media/captures/labllm-hero.gif" alt="Animated LabLLM word field" />
+            <div class="hero-state-overlay" aria-live="polite">
+              <span class="hero-state-kicker">training</span>
+              <strong>watch the curve bend</strong>
+              <p>Blue train loss, orange validation loss, live samples, and checkpoints in one workspace.</p>
+            </div>
           </div>
           <div class="run-grid">
             <div>
-              <span class="metric-label">tokens/sec</span>
-              <strong class="metric-number" data-count="1860">0</strong>
+              <span class="metric-label hero-metric-a-label">tokens/sec</span>
+              <strong class="metric-number hero-metric-a" data-count="1860">0</strong>
             </div>
             <div>
-              <span class="metric-label">checkpoint</span>
-              <strong>step 1,240</strong>
+              <span class="metric-label hero-metric-b-label">checkpoint</span>
+              <strong class="hero-metric-b">step 1,240</strong>
             </div>
             <div>
-              <span class="metric-label">mode</span>
-              <strong>fine-tune</strong>
+              <span class="metric-label hero-metric-c-label">mode</span>
+              <strong class="hero-metric-c">fine-tune</strong>
             </div>
           </div>
         </div>
@@ -182,6 +195,61 @@
               <button class="dataset-row active"><b>Tiny Stories 2</b><span>pre-training</span></button>
               <button class="dataset-row"><b>Open Assistant OASST1</b><span>fine-tuning</span></button>
               <button class="dataset-row"><b>GSM8K</b><span>reasoning</span></button>
+            </div>
+          </article>
+
+          <article class="mini-app checkpoint-demo reveal">
+            <div class="mini-title">
+              <strong>Checkpoint timeline</strong>
+              <span>best run marked</span>
+            </div>
+            <div class="checkpoint-track">
+              <span class="checkpoint-node done"><b>240</b></span>
+              <span class="checkpoint-node done"><b>520</b></span>
+              <span class="checkpoint-node active"><b>880</b></span>
+              <span class="checkpoint-node"><b>1240</b></span>
+            </div>
+            <div class="checkpoint-card">
+              <span>selected checkpoint</span>
+              <strong>story-gpt-sft-0880</strong>
+              <p>val loss improved, sample quality up, ready to continue or chat.</p>
+            </div>
+          </article>
+
+          <article class="mini-app chat-demo reveal">
+            <div class="mini-title">
+              <strong>Model chat</strong>
+              <span>streaming</span>
+            </div>
+            <div class="chat-window">
+              <p class="chat-user">Explain why validation loss matters.</p>
+              <p class="chat-model"><span class="chat-generated"></span></p>
+            </div>
+          </article>
+
+          <article class="mini-app import-demo reveal">
+            <div class="mini-title">
+              <strong>Hugging Face import</strong>
+              <span>chunked</span>
+            </div>
+            <div class="import-list">
+              <div><span>Tiny Stories 2</span><b class="progress-readout">0%</b></div>
+              <i class="progress-bar"><em></em></i>
+              <div><span>validating files</span><b>jsonl/parquet</b></div>
+              <i class="progress-bar secondary"><em></em></i>
+              <div><span>preview rows</span><b>2,000</b></div>
+            </div>
+          </article>
+
+          <article class="mini-app contributor-demo reveal">
+            <div class="mini-title">
+              <strong>Contributor impact</strong>
+              <span>good first PRs</span>
+            </div>
+            <div class="impact-list">
+              <a href="https://github.com/Greninja9257/LabLLM/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22"><span>ML tests</span><b>dataset windows</b></a>
+              <a href="https://github.com/Greninja9257/LabLLM/issues"><span>SwiftUI polish</span><b>small fixes</b></a>
+              <a href="https://github.com/Greninja9257/LabLLM/discussions"><span>Recipes</span><b>share runs</b></a>
             </div>
           </article>
         </div>

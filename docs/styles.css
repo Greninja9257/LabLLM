@@ -189,7 +189,7 @@ h3 { margin-bottom: 0.6rem; font-size: 1.16rem; }
   font-size: clamp(1.12rem, 2vw, 1.3rem);
 }
 
-.hero-actions, .signal-strip, .legend, .center {
+.hero-actions, .signal-strip, .legend, .center, .live-badges {
   display: flex;
   flex-wrap: wrap;
   gap: 0.85rem;
@@ -233,6 +233,29 @@ h3 { margin-bottom: 0.6rem; font-size: 1.16rem; }
 }
 
 .signal-strip strong { color: var(--text); }
+
+.live-badges {
+  gap: 0.55rem;
+  margin: -0.35rem 0 1.35rem;
+}
+
+.live-badges a {
+  display: inline-flex;
+  max-width: 100%;
+  border-radius: 0.65rem;
+  transition: transform 180ms ease, filter 180ms ease;
+}
+
+.live-badges a:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.12);
+}
+
+.live-badges img {
+  height: 28px;
+  max-width: 100%;
+  border-radius: 0.65rem;
+}
 
 .hero-console, .mini-app, .product-frame, .visual-card, .workflow-card, .roadmap-stack article, .faq details, .contribute, .final-cta {
   border: 1px solid var(--line);
@@ -279,10 +302,51 @@ h3 { margin-bottom: 0.6rem; font-size: 1.16rem; }
 .window-bar strong { margin-left: 0.4rem; }
 
 .hero-shot {
+  position: relative;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 1.2rem;
   background: #081321;
+}
+
+.hero-shot img {
+  width: 100%;
+}
+
+.hero-state-overlay {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: 1rem;
+  display: grid;
+  gap: 0.32rem;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 1rem;
+  background: linear-gradient(135deg, rgba(8, 19, 33, 0.86), rgba(8, 19, 33, 0.56));
+  backdrop-filter: blur(18px);
+}
+
+.hero-state-overlay span {
+  width: fit-content;
+  padding: 0.3rem 0.55rem;
+  border-radius: 999px;
+  color: #06111d;
+  background: var(--cyan);
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.hero-state-overlay strong {
+  font-size: clamp(1.35rem, 2.3vw, 2.05rem);
+  line-height: 1;
+}
+
+.hero-state-overlay p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
 }
 
 .run-grid {
@@ -531,6 +595,185 @@ h3 { margin-bottom: 0.6rem; font-size: 1.16rem; }
   font-size: 0.82rem;
 }
 
+.checkpoint-demo, .chat-demo, .import-demo, .contributor-demo {
+  min-height: 18rem;
+}
+
+.checkpoint-track {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  align-items: center;
+  gap: 0.8rem;
+  margin: 2rem 0;
+}
+
+.checkpoint-track::before {
+  content: "";
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: 50%;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--green), var(--cyan), rgba(255, 255, 255, 0.18));
+}
+
+.checkpoint-node {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 3.2rem;
+  height: 3.2rem;
+  margin: 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  background: #102033;
+}
+
+.checkpoint-node.done {
+  color: #06111d;
+  background: var(--green);
+}
+
+.checkpoint-node.active {
+  color: #06111d;
+  background: var(--orange);
+  box-shadow: 0 0 0 8px rgba(255, 173, 87, 0.16), 0 0 30px rgba(255, 173, 87, 0.28);
+  animation: checkpoint-pulse 2.6s ease-in-out infinite;
+}
+
+.checkpoint-card, .chat-window, .import-list {
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.065);
+}
+
+.checkpoint-card span {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.checkpoint-card p {
+  margin: 0.55rem 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.chat-window {
+  display: grid;
+  gap: 0.8rem;
+  min-height: 13.4rem;
+  align-content: start;
+}
+
+.chat-window p {
+  margin: 0;
+  padding: 0.85rem;
+  border-radius: 1rem;
+  line-height: 1.55;
+}
+
+.chat-user {
+  justify-self: end;
+  max-width: 88%;
+  color: #071120;
+  background: linear-gradient(135deg, var(--cyan), var(--green));
+  font-weight: 800;
+}
+
+.chat-model {
+  justify-self: start;
+  max-width: 94%;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.chat-generated {
+  color: var(--blue);
+}
+
+.import-list {
+  display: grid;
+  gap: 0.78rem;
+}
+
+.import-list div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.import-list span {
+  color: var(--text);
+  font-weight: 850;
+}
+
+.import-list b {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.progress-bar {
+  display: block;
+  overflow: hidden;
+  height: 0.72rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.progress-bar em {
+  display: block;
+  width: 0%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--blue), var(--cyan), var(--green));
+}
+
+.progress-bar.secondary em {
+  background: linear-gradient(90deg, var(--orange), var(--pink));
+  animation-delay: 0.4s;
+}
+
+.impact-list {
+  display: grid;
+  gap: 0.78rem;
+}
+
+.impact-list a {
+  display: grid;
+  gap: 0.38rem;
+  min-height: 4.25rem;
+  padding: 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.055);
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.impact-list a:hover {
+  transform: translateY(-2px);
+  border-color: rgba(118, 242, 212, 0.55);
+  background: rgba(118, 242, 212, 0.1);
+}
+
+.impact-list span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.impact-list b {
+  color: var(--text);
+}
+
 .gallery-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -659,6 +902,11 @@ html.js .reveal.visible {
   100% { opacity: 0; transform: scale(1.6); }
 }
 
+@keyframes checkpoint-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
 @media (max-width: 980px) {
   .site-nav { display: none; }
   .hero, .split, .roadmap-preview, .contribute { grid-template-columns: 1fr; }
@@ -666,7 +914,7 @@ html.js .reveal.visible {
   .hero-copy { order: 2; }
   .hero-console { order: 1; }
   .workflow-rail, .demo-grid { grid-template-columns: repeat(2, 1fr); }
-  .loss-demo { grid-column: 1 / -1; }
+  .loss-demo, .import-demo { grid-column: 1 / -1; }
 }
 
 @media (max-width: 680px) {
@@ -679,6 +927,7 @@ html.js .reveal.visible {
   .install-strip, .workflow-rail, .demo-grid, .gallery-grid, .run-grid {
     grid-template-columns: 1fr;
   }
+  .loss-demo, .import-demo { grid-column: auto; }
   .install-strip a {
     border-right: 0;
     border-bottom: 1px solid var(--line);

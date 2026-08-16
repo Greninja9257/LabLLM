@@ -141,3 +141,121 @@ if (stepReadout && !reducedMotion) {
     stepReadout.textContent = step.toLocaleString();
   }, 480);
 }
+
+const heroStates = [
+  {
+    title: "training run",
+    kicker: "training",
+    headline: "watch the curve bend",
+    body: "Blue train loss, orange validation loss, live samples, and checkpoints in one workspace.",
+    aLabel: "tokens/sec",
+    a: "1,860",
+    bLabel: "checkpoint",
+    b: "step 1,240",
+    cLabel: "mode",
+    c: "fine-tune"
+  },
+  {
+    title: "sampling playground",
+    kicker: "sampling",
+    headline: "generate in the prompt",
+    body: "Change temperature, continue the text, compare settings, and keep useful generations nearby.",
+    aLabel: "temperature",
+    a: "0.8",
+    bLabel: "top-p",
+    b: "0.92",
+    cLabel: "tokens",
+    c: "256"
+  },
+  {
+    title: "checkpoint manager",
+    kicker: "checkpoints",
+    headline: "keep the run that worked",
+    body: "Load, continue, rename, quantize, and compare checkpoints without losing the experiment.",
+    aLabel: "best val",
+    a: "2.41",
+    bLabel: "saved",
+    b: "8 runs",
+    cLabel: "status",
+    c: "ready"
+  }
+];
+
+const heroTitle = document.querySelector(".hero-state-title");
+const heroKicker = document.querySelector(".hero-state-kicker");
+const heroHeadline = document.querySelector(".hero-state-overlay strong");
+const heroBody = document.querySelector(".hero-state-overlay p");
+const heroMetricALabel = document.querySelector(".hero-metric-a-label");
+const heroMetricA = document.querySelector(".hero-metric-a");
+const heroMetricBLabel = document.querySelector(".hero-metric-b-label");
+const heroMetricB = document.querySelector(".hero-metric-b");
+const heroMetricCLabel = document.querySelector(".hero-metric-c-label");
+const heroMetricC = document.querySelector(".hero-metric-c");
+
+function applyHeroState(state) {
+  if (!heroTitle || !heroKicker || !heroHeadline || !heroBody) return;
+  heroTitle.textContent = state.title;
+  heroKicker.textContent = state.kicker;
+  heroHeadline.textContent = state.headline;
+  heroBody.textContent = state.body;
+  heroMetricALabel.textContent = state.aLabel;
+  heroMetricA.textContent = state.a;
+  heroMetricBLabel.textContent = state.bLabel;
+  heroMetricB.textContent = state.b;
+  heroMetricCLabel.textContent = state.cLabel;
+  heroMetricC.textContent = state.c;
+}
+
+if (!reducedMotion && heroStates.length > 0) {
+  let heroIndex = 0;
+  setInterval(() => {
+    heroIndex = (heroIndex + 1) % heroStates.length;
+    applyHeroState(heroStates[heroIndex]);
+  }, 4200);
+}
+
+const chatGenerated = document.querySelector(".chat-generated");
+const chatText = "It is the fixed exam your model keeps retaking. If train loss improves while validation loss gets worse, the model may be memorizing instead of generalizing.";
+let chatTyped = 0;
+
+function typeChat() {
+  if (!chatGenerated || reducedMotion) {
+    if (chatGenerated) chatGenerated.textContent = chatText;
+    return;
+  }
+  chatGenerated.textContent = chatText.slice(0, chatTyped);
+  chatTyped = (chatTyped + 1) % (chatText.length + 42);
+  setTimeout(typeChat, chatTyped === 0 ? 900 : 32);
+}
+typeChat();
+
+const progressBars = document.querySelectorAll(".progress-bar em");
+const progressReadout = document.querySelector(".progress-readout");
+if (!reducedMotion && progressBars.length > 0) {
+  let progress = 0;
+  setInterval(() => {
+    progress = (progress + 3) % 101;
+    progressBars.forEach((bar, index) => {
+      const value = Math.min(100, Math.max(12, progress - index * 18));
+      bar.style.width = `${value}%`;
+    });
+    if (progressReadout) progressReadout.textContent = `${progress}%`;
+  }, 160);
+} else {
+  progressBars.forEach((bar) => {
+    bar.style.width = "72%";
+  });
+  if (progressReadout) progressReadout.textContent = "72%";
+}
+
+const checkpointNodes = Array.from(document.querySelectorAll(".checkpoint-node"));
+if (!reducedMotion && checkpointNodes.length > 0) {
+  let activeNode = 2;
+  setInterval(() => {
+    checkpointNodes.forEach((node, index) => {
+      node.classList.toggle("active", index === activeNode);
+      node.classList.toggle("done", index < activeNode);
+    });
+    activeNode = (activeNode + 1) % checkpointNodes.length;
+  }, 2200);
+}
