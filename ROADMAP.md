@@ -36,6 +36,7 @@ This roadmap is meant for GitHub visitors and contributors. It shows what alread
 | Tokenizers | Character tokenizer, byte tokenizer, trained BPE tokenizer, Simple mode automatic tokenizer build. |
 | Model workspaces | Named models created, renamed, duplicated, switched, and deleted from the model menu in the top-left of the sidebar. Each model stores its own architecture, hyperparameters, tokenizer choice, and data mix. |
 | Data import | Local TXT, JSON, JSONL, CSV-ish data, iMessage import path, Hugging Face dataset browsing/import. |
+| Dataset browsing | Cursor-based infinite scroll through the Hub, plus filtering by purpose, size, language and popularity, and sorting by best match, downloads, likes or last update. |
 | Installed dataset library | Every import is written to `~/Library/Application Support/LabLLM/Library` and reloaded on the next launch. Installed datasets can be renamed, revealed in Finder, and deleted from disk. |
 | Dataset mixing | Percentage-based and row-limit mixing, configured per run in the Training page rather than in the dataset browsers. |
 | Large-task handling | Download/import progress and chunked local file loading for bigger files. |
@@ -68,7 +69,7 @@ This roadmap is meant for GitHub visitors and contributors. It shows what alread
 | Checkpoint browser | Surface whether a checkpoint is exact-resumable or legacy/incomplete. | 🔵 UI + metadata task. |
 | Model workspaces | Notes, tags, archiving, model-to-model comparison, and export/import of a complete model folder. | 🔵 Good app-level contribution. |
 | Dataset library | Checksums, licenses, versioning, dedupe on install, and re-import of a dataset that changed upstream. | 🔵 Data-quality contributors welcome. |
-| Dataset Studio | Better filtering, sorting, provenance, previews, and caching. | 🔵 Frontend and data-quality contributors welcome. |
+| Dataset Studio | Saved filter presets, provenance, previews, and caching of search results. | 🔵 Frontend and data-quality contributors welcome. |
 | Experiment history | Sessions currently keep the latest run per mode. Keeping a full run history, comparing runs, and exporting them is the next step. | 🔵 Natural follow-on to session persistence. |
 | Recipes | More recipes, recipe sharing, and recipes that chain pretrain → SFT → DPO in one plan. | 🔵 Good contributor project. |
 | Tutorial | More complete guided setup across Simple, Advanced, and Expert mode without forcing a single path. | 🔵 UX/content contribution. |

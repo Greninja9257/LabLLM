@@ -9,18 +9,6 @@ struct FineTuneDataView: View {
     @State private var importingSFT = false
     @State private var importingIMessage = false
 
-    /// Recommended sources stay pinned to the top in every mode. They are the
-    /// repositories known to import cleanly here, which is just as useful to an
-    /// expert as to a beginner.
-    private var displayedResults: [HFHubDataset] {
-        let remote = browser.results.filter { remote in !browser.pinned.contains(where: { $0.id == remote.id }) }
-        return browser.pinned + remote.sorted { ($0.downloads ?? 0) > ($1.downloads ?? 0) }
-    }
-
-    private func isRecommended(_ dataset: HFHubDataset) -> Bool {
-        browser.pinned.contains { $0.displayName == dataset.displayName && $0.id == dataset.id }
-    }
-
     var body: some View {
         VStack(spacing: 0) {
             WorkbenchPageHeader(eyebrow: "Dataset Studio", title: "Fine-tuning Data", subtitle: "Find compatible instruction datasets and install them to disk. The SFT mix itself is composed in Training.", icon: "tray.full")
@@ -65,6 +53,7 @@ struct FineTuneDataView: View {
                 Button { importingSFT = true } label: { Image(systemName: "folder.badge.plus") }.help("Import local JSONL")
             }
             WorkbenchSearchBar(query: $browser.query, prompt: "Search Hugging Face") { browser.search() }
+            DatasetFilterBar(browser: browser)
             if !browser.activityDetail.isEmpty {
                 Text(browser.activityDetail).font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
             }
@@ -72,19 +61,9 @@ struct FineTuneDataView: View {
                 Label("Starred sources are pinned first in every mode. Results prioritize importable instruction and conversation data, including Parquet-backed datasets.", systemImage: "sparkles")
                     .font(.caption).foregroundStyle(.secondary)
             }
-            if browser.isLoading && browser.results.isEmpty { ProgressView("Searching datasets…").frame(maxWidth: .infinity, maxHeight: .infinity) }
+            if browser.isLoading && browser.visibleResults.isEmpty { ProgressView("Searching datasets…").frame(maxWidth: .infinity, maxHeight: .infinity) }
             else {
-                ScrollView {
-                    LazyVStack(spacing: 4) {
-                        ForEach(displayedResults) { dataset in
-                            FineTuneBrowserRow(dataset: dataset, isSelected: browser.selected == dataset, recommended: isRecommended(dataset))
-                                .contentShape(Rectangle())
-                                .onTapGesture { browser.select(dataset) }
-                                .onAppear { browser.loadMoreIfNeeded(dataset) }
-                        }
-                        if browser.isLoadingMore { ProgressView().padding() }
-                    }
-                }
+                DatasetResultList(browser: browser)
             }
             if let error = browser.error { Text(error).font(.caption).foregroundStyle(.orange) }
         }
@@ -161,24 +140,4 @@ struct FineTuneDataView: View {
         tutorial.complete(.fineTuneSourceAdded)
     }
     private func format(_ number: Int) -> String { NumberFormatter.localizedString(from: NSNumber(value: number), number: .decimal) }
-}
-
-private struct FineTuneBrowserRow: View {
-    let dataset: HFHubDataset
-    let isSelected: Bool
-    let recommended: Bool
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(dataset.displayName).font(.callout.weight(.semibold)).lineLimit(1)
-                Spacer()
-                if recommended { Image(systemName: "star.fill").font(.caption2).foregroundStyle(.yellow) }
-            }
-            Text(dataset.id).font(.caption2.monospaced()).foregroundStyle(.secondary).lineLimit(1)
-            HStack { Text(dataset.summary).font(.caption2).foregroundStyle(.secondary).lineLimit(1); Spacer(); Text(dataset.estimatedRows.map { "\($0) rows" } ?? "\(dataset.downloads ?? 0)").font(.caption2.monospacedDigit()).foregroundStyle(.secondary) }
-        }
-        .padding(10).frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
-        .background(isSelected ? WorkbenchTheme.accent.opacity(0.14) : Color.clear, in: RoundedRectangle(cornerRadius: WorkbenchTheme.cornerRadius, style: .continuous))
-    }
 }

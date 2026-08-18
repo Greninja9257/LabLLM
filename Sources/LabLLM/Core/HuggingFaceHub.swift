@@ -82,6 +82,10 @@ struct HFHubFile: Identifiable, Decodable, Hashable, Sendable {
     }
     var isJSONL: Bool { lowerPath.hasSuffix(".jsonl") }
     var isFineTuneData: Bool { isJSONL || lowerPath.hasSuffix(".json") }
+    /// Parquet can't be parsed locally, but the Hugging Face Dataset Viewer serves
+    /// its rows as JSON — which is exactly how the app imports these repos. Such a
+    /// dataset is therefore usable even though no raw text file is downloadable.
+    var isParquet: Bool { lowerPath.hasSuffix(".parquet") }
     var formattedSize: String? { size.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .file) } }
 }
 
@@ -101,14 +105,62 @@ final class HFHubBrowser: ObservableObject {
     @Published var viewerSource: HFViewerSource?
     @Published var viewerRowLimit = 10_000
 
+    /// Filters applied to the browser. Sort is sent to the Hub (so it orders every
+    /// result, not just the loaded ones); the rest narrow what has been loaded and
+    /// make the pager keep fetching until the visible list is worth scrolling.
+    @Published var filters = DatasetFilters() {
+        didSet {
+            guard filters != oldValue else { return }
+            if filters.requiresRefetch(comparedTo: oldValue) { search() }
+            else { fillVisibleResultsIfNeeded() }
+        }
+    }
+
     let kind: Kind
-    private var offset = 0
-    private let pageSize = 15
+    /// Cursor for the next page, from the previous response's `Link` header.
+    private var nextPageURL: URL?
+    private let pageSize = 20
+    /// Keep pulling pages until this many rows are actually visible, so a narrow
+    /// filter doesn't leave the list looking empty while more pages exist.
+    private let minimumVisibleResults = 14
+    /// Cap on pages fetched for one scroll trigger, so a filter that matches
+    /// nothing can't page through the entire Hub in one go.
+    private let maximumPagesPerRequest = 4
     private var hasMore = true
     private var searchGeneration = UUID()
+    private var seenKeys: Set<String> = []
     enum Kind { case corpus, fineTune }
 
     init(kind: Kind) { self.kind = kind }
+
+    /// Recommended entries first (in every mode), then Hub results in the order
+    /// the current sort implies, with everything the filters exclude removed.
+    var visibleResults: [HFHubDataset] { pinned.filter(filters.matches) + sortRemote(visibleRemoteResults) }
+
+    /// Hub results only. Paging decisions use this, never the total: the pinned
+    /// list alone would otherwise satisfy the "enough rows" check and stall the
+    /// pager on the first page.
+    private var visibleRemoteResults: [HFHubDataset] {
+        let pinnedIDs = Set(pinned.map(\.id))
+        return results.filter { !pinnedIDs.contains($0.id) && filters.matches($0) }
+    }
+
+    func isPinned(_ dataset: HFHubDataset) -> Bool {
+        pinned.contains { $0.id == dataset.id && $0.displayName == dataset.displayName }
+    }
+
+    private func sortRemote(_ datasets: [HFHubDataset]) -> [HFHubDataset] {
+        switch filters.sort {
+        case .relevance: return datasets                 // the Hub's own ranking
+        case .downloads: return datasets.sorted { ($0.downloads ?? 0) > ($1.downloads ?? 0) }
+        case .likes: return datasets.sorted { ($0.likes ?? 0) > ($1.likes ?? 0) }
+        case .updated: return datasets.sorted { ($0.lastModified ?? "") > ($1.lastModified ?? "") }
+        }
+    }
+
+    var canLoadMore: Bool { hasMore }
+
+    func resetFilters() { filters = DatasetFilters() }
 
     var pinned: [HFHubDataset] {
         switch kind {
@@ -142,37 +194,80 @@ final class HFHubBrowser: ObservableObject {
     func search(reset: Bool = true) {
         if reset {
             searchGeneration = UUID()
-            offset = 0; hasMore = true; results = []; selected = nil; files = []; selectedFile = nil; viewerSource = nil
+            nextPageURL = nil; hasMore = true; results = []; seenKeys = []
+            selected = nil; files = []; selectedFile = nil; viewerSource = nil
+            error = nil
             activityDetail = "Searching in \(pageSize)-result batches…"
         } else if isLoading || isLoadingMore { return }
         guard hasMore else { return }
         if reset { isLoading = true } else { isLoadingMore = true }
+
         let enteredQuery = self.query.trimmingCharacters(in: .whitespacesAndNewlines)
         let browserKind = kind
         let query = enteredQuery.isEmpty ? (browserKind == .corpus ? "text generation" : "instruction") : enteredQuery
-        let currentOffset = offset
         let pageSize = self.pageSize
+        let sort = filters.sort.apiValue
         let generation = searchGeneration
+
         Task {
             defer {
                 if self.searchGeneration == generation {
                     self.isLoading = false; self.isLoadingMore = false
                 }
             }
-            do {
-                let page = try await Task.detached { try await HFHubClient.search(query: query, limit: pageSize, offset: currentOffset) }.value
-                let candidates = page.filter { Self.matches($0, kind: browserKind) }
-                let importable = await Task.detached { await HFHubClient.importableDatasets(candidates, kind: browserKind) }.value
-                guard self.searchGeneration == generation else { return }
-                results.append(contentsOf: importable.filter { !results.contains($0) })
-                offset += page.count
-                hasMore = page.count == pageSize
-                activityDetail = hasMore ? "Loaded \(results.count) importable results. Scroll for the next batch." : "Loaded \(results.count) importable results."
-            } catch where self.searchGeneration == generation { self.error = error.localizedDescription }
+            // One scroll can consume several Hub pages: results are filtered for
+            // importability, so a page often contributes only a handful of rows.
+            for _ in 0..<maximumPagesPerRequest {
+                guard self.searchGeneration == generation, hasMore else { return }
+                let cursor = nextPageURL
+                do {
+                    let page = try await Task.detached {
+                        if let cursor { return try await HFHubClient.searchPage(at: cursor) }
+                        return try await HFHubClient.search(query: query, limit: pageSize, sort: sort)
+                    }.value
+                    let candidates = page.datasets.filter { Self.matches($0, kind: browserKind) }
+                    let importable = await Task.detached { await HFHubClient.importableDatasets(candidates, kind: browserKind) }.value
+                    guard self.searchGeneration == generation else { return }
+
+                    let fresh = importable.filter { seenKeys.insert("\($0.id)|\($0.displayName)").inserted }
+                    results.append(contentsOf: fresh)
+                    nextPageURL = page.next
+                    hasMore = page.next != nil
+                    updateActivityDetail()
+                    if visibleRemoteResults.count >= minimumVisibleResults { return }
+                } catch {
+                    guard self.searchGeneration == generation else { return }
+                    self.error = error.localizedDescription
+                    return
+                }
+            }
         }
     }
 
-    func loadMoreIfNeeded(_ item: HFHubDataset) { if item == results.last { search(reset: false) } }
+    /// Called as rows appear. Loading starts a few rows before the end so the next
+    /// batch is usually already there by the time the user reaches the bottom.
+    func loadMoreIfNeeded(at index: Int) {
+        guard hasMore, !isLoading, !isLoadingMore else { return }
+        if index >= visibleResults.count - 5 { search(reset: false) }
+    }
+
+    /// After a filter change, top the list up rather than leaving three results on
+    /// screen when the Hub has plenty more that would match.
+    private func fillVisibleResultsIfNeeded() {
+        updateActivityDetail()
+        guard hasMore, !isLoading, !isLoadingMore, visibleRemoteResults.count < minimumVisibleResults else { return }
+        search(reset: false)
+    }
+
+    private func updateActivityDetail() {
+        let shown = visibleResults.count
+        let fetched = results.count
+        if filters.activeCount > 0 {
+            activityDetail = "\(shown) shown · \(fetched) fetched from the Hub" + (hasMore ? " · scroll for more" : " · end of results")
+        } else {
+            activityDetail = "\(shown) results · \(fetched) fetched from the Hub" + (hasMore ? " · scroll for more" : " · end of results")
+        }
+    }
 
     func select(_ dataset: HFHubDataset?) {
         selected = dataset; files = []; selectedFile = nil; viewerSource = nil; readme = ""
@@ -219,12 +314,51 @@ final class HFHubBrowser: ObservableObject {
 }
 
 enum HFHubClient {
-    static func search(query: String, limit: Int, offset: Int) async throws -> [HFHubDataset] {
+    /// One page of search results plus the cursor for the page after it.
+    ///
+    /// The Hub's dataset API ignores an `offset` parameter — paging is cursor
+    /// based, and the next page's URL arrives in the `Link` header. Asking for
+    /// offset 20 silently returns the first 20 results again, so the cursor is the
+    /// only way to actually advance.
+    struct SearchPage {
+        let datasets: [HFHubDataset]
+        let next: URL?
+    }
+
+    static func search(query: String, limit: Int, sort: String? = nil) async throws -> SearchPage {
         var components = URLComponents(string: "https://huggingface.co/api/datasets")!
-        components.queryItems = [URLQueryItem(name: "search", value: query), URLQueryItem(name: "limit", value: String(limit)), URLQueryItem(name: "offset", value: String(offset)), URLQueryItem(name: "full", value: "true")]
-        let (data, response) = try await URLSession.shared.data(from: components.url!)
-        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else { throw ConversationImportError.network("Couldn't search Hugging Face datasets.") }
-        return try JSONDecoder().decode([HFHubDataset].self, from: data)
+        var items = [URLQueryItem(name: "search", value: query),
+                     URLQueryItem(name: "limit", value: String(limit)),
+                     URLQueryItem(name: "full", value: "true")]
+        if let sort {
+            items.append(URLQueryItem(name: "sort", value: sort))
+            items.append(URLQueryItem(name: "direction", value: "-1"))
+        }
+        components.queryItems = items
+        return try await searchPage(at: components.url!)
+    }
+
+    static func searchPage(at url: URL) async throws -> SearchPage {
+        let (data, response) = try await URLSession.shared.data(from: url)
+        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+            throw ConversationImportError.network("Couldn't search Hugging Face datasets.")
+        }
+        return SearchPage(datasets: try JSONDecoder().decode([HFHubDataset].self, from: data),
+                          next: nextPageURL(from: http))
+    }
+
+    /// Parses `Link: <https://…&cursor=…>; rel="next"`.
+    static func nextPageURL(from response: HTTPURLResponse) -> URL? {
+        guard let header = response.value(forHTTPHeaderField: "Link") else { return nil }
+        for link in header.split(separator: ",") {
+            let parts = link.split(separator: ";")
+            guard parts.count >= 2,
+                  parts.dropFirst().contains(where: { $0.contains("rel=\"next\"") }) else { continue }
+            let raw = parts[0].trimmingCharacters(in: .whitespaces)
+            guard raw.hasPrefix("<"), raw.hasSuffix(">") else { continue }
+            return URL(string: String(raw.dropFirst().dropLast()))
+        }
+        return nil
     }
 
     static func files(repo: String, path: String? = nil, recursive: Bool = true) async throws -> [HFHubFile] {
@@ -253,12 +387,17 @@ enum HFHubClient {
         return Array(found.prefix(limit))
     }
 
+    /// A dataset qualifies for the browser when it exposes either a directly
+    /// downloadable file or Parquet the Dataset Viewer can convert. Requiring a raw
+    /// file alone rejected most modern repositories and starved the result list.
     static func importableDatasets(_ candidates: [HFHubDataset], kind: HFHubBrowser.Kind) async -> [HFHubDataset] {
         await withTaskGroup(of: HFHubDataset?.self) { group in
             for dataset in candidates {
                 group.addTask {
                     guard let root = try? await files(repo: dataset.id, recursive: false) else { return nil }
-                    let compatible: (HFHubFile) -> Bool = { kind == .fineTune ? $0.isFineTuneData : $0.isTextLike }
+                    let compatible: (HFHubFile) -> Bool = {
+                        $0.isParquet || (kind == .fineTune ? $0.isFineTuneData : $0.isTextLike)
+                    }
                     if root.contains(where: compatible) { return dataset }
                     for directory in ["data", "train", "dataset", "default", "raw"] where root.contains(where: { $0.path == directory }) {
                         if let nested = try? await files(repo: dataset.id, path: directory, recursive: false), nested.contains(where: compatible) { return dataset }

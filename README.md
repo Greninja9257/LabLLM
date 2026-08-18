@@ -124,6 +124,7 @@ Quite a bit, actually.
 - Local TXT, JSON, JSONL, CSV-ish, and iMessage import paths
 - Installed dataset library written to disk and reloaded on the next launch
 - Recommended datasets pinned first in every mode
+- Infinite scrolling through Hugging Face search results, with filters for purpose, size, language and popularity, and sorting
 - Dataset cards rendered from real Hugging Face READMEs, including HTML-heavy ones
 - Dataset selection and mixing with percentages or row limits, configured per run in Training
 - Download/import progress for big data tasks
