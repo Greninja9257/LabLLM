@@ -97,8 +97,8 @@ Quite a bit, actually.
 | Area | Current vibe |
 | --- | --- |
 | Model building | GPT-style decoder presets, validation, estimates, and enough knobs to make Expert mode feel legally responsible. |
-| Data | Hugging Face browsing, local import, iMessage import, dataset mixing, row limits, percentages, and progress for big jobs. |
-| Training | Pretraining, SFT, LoRA, DPO, live metrics, validation curve, samples, checkpoints, pause/resume/stop. |
+| Data | Hugging Face browsing, local import, iMessage import, an installed dataset library saved to disk, and progress for big jobs. |
+| Training | Per-run dataset selection and mixing, pretraining, SFT, LoRA, DPO, live metrics, validation curve, samples, checkpoints, pause/resume/stop. |
 | Playing | Sampling, chat, X-Ray token inspection, embeddings, local server, quantized exports. |
 | Customization | Themes, accent, density, sidebar width, feature visibility, tutorial preferences, and deep controls for serious experiments. |
 
@@ -107,6 +107,10 @@ Quite a bit, actually.
 - Local-first macOS app with no account and no subscription
 - Apple Silicon + MLX acceleration
 - Simple, Advanced, and Expert modes
+- Named model workspaces (create, rename, duplicate, switch, delete) from the model menu at the top left
+- Per-model checkpoints, hyperparameters, tokenizer choice, and training data mix
+- Per-model run sessions: loss curves, metrics, and sample timelines saved to disk and restored on launch
+- One-click recipes that configure the model, install the dataset they need, and open Training ready to start
 - Customizable appearance, accent color, density, panel opacity, sidebar width, and feature visibility
 - Welcome screen with animated background
 - Persistent tutorial progress and guided setup overlay
@@ -118,7 +122,10 @@ Quite a bit, actually.
 - Pre-training data browser for Hugging Face datasets
 - Fine-tuning data browser for Hugging Face datasets
 - Local TXT, JSON, JSONL, CSV-ish, and iMessage import paths
-- Dataset mixing with percentages or row limits
+- Installed dataset library written to disk and reloaded on the next launch
+- Recommended datasets pinned first in every mode
+- Dataset cards rendered from real Hugging Face READMEs, including HTML-heavy ones
+- Dataset selection and mixing with percentages or row limits, configured per run in Training
 - Download/import progress for big data tasks
 - Chunked local file loading so large files do not freeze everything immediately
 - Pretraining with AdamW/SGD, warmup, cosine LR, gradient clipping, gradient accumulation, checkpoints, pause, resume, and stop
@@ -189,10 +196,11 @@ This is where the ambition lives. Some of it is sensible. Some of it is probably
 ```text
 Learn
 -> Explore
--> Create project
+-> Create model
 -> Design model
--> Import data
+-> Install data
 -> Clean/analyze data
+-> Choose the training mix
 -> Configure training
 -> Estimate resources
 -> Train
@@ -235,6 +243,8 @@ LabLLM/
     │   ├── DPODataset.swift
     │   ├── ConversationImport.swift
     │   ├── HuggingFaceHub.swift
+    │   ├── DatasetLibrary.swift
+    │   ├── ModelWorkspace.swift
     │   ├── Checkpoint.swift
     │   ├── ModelServer.swift
     │   └── ...

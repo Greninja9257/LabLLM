@@ -3,6 +3,7 @@ import AppKit
 
 struct CheckpointsView: View {
     @EnvironmentObject var state: AppState
+    @EnvironmentObject var models: ModelStore
     @State private var items: [CheckpointItem] = []
     @State private var bestURL: URL?
     @State private var quantizeError: String?
@@ -21,10 +22,15 @@ struct CheckpointsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 HStack {
-                    WorkbenchPageHeader(eyebrow: "Run Studio", title: "Model Manager", subtitle: "Inspect, continue, duplicate, quantize, and organize locally saved models.", icon: "cube.box")
+                    WorkbenchPageHeader(eyebrow: "Run Studio",
+                                        title: "Checkpoints",
+                                        subtitle: "Saved runs for “\(models.activeName)”. Inspect, continue, duplicate, quantize, and organize this model's checkpoints.",
+                                        icon: "cube.box")
                     Spacer()
                     Button { refresh() } label: { Label("Refresh", systemImage: "arrow.clockwise") }
                 }
+                Label("Checkpoints belong to the selected model. Switch models from the box at the top left of the sidebar.", systemImage: "square.stack.3d.up")
+                    .font(.caption).foregroundStyle(.secondary)
 
                 if let r = quantizeResult {
                     Label(r, systemImage: "checkmark.circle.fill").foregroundStyle(.green)
@@ -34,8 +40,8 @@ struct CheckpointsView: View {
                 }
 
                 if items.isEmpty {
-                    ContentUnavailableView("No checkpoints yet", systemImage: "tray",
-                        description: Text("Finish (or stop) a training run and it will be saved here automatically."))
+                    ContentUnavailableView("No checkpoints for this model yet", systemImage: "tray",
+                        description: Text("Finish (or stop) a training run for “\(models.activeName)” and it will be saved here automatically."))
                         .frame(height: 220)
                 } else {
                     ForEach(items) { item in row(item) }
@@ -43,11 +49,12 @@ struct CheckpointsView: View {
             }.padding(WorkbenchTheme.pagePadding)
         }
         .onAppear(perform: refresh)
-        .alert("Rename model", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
-            TextField("Model name", text: $renameValue)
+        .alert("Rename checkpoint", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
+            TextField("Checkpoint name", text: $renameValue)
             Button("Rename") { renameSelected() }
             Button("Cancel", role: .cancel) { renaming = nil }
         } message: { Text("Use a concise local name for this checkpoint.") }
+        .onChange(of: models.activeID) { _ in refresh() }
     }
 
     private func row(_ item: CheckpointItem) -> some View {
@@ -133,8 +140,8 @@ struct CheckpointsView: View {
         guard !name.isEmpty else { return }
         do {
             try FileManager.default.moveItem(at: item.url, to: item.url.deletingLastPathComponent().appendingPathComponent(name, isDirectory: true))
-            quantizeResult = "Renamed model to \(name)"
-        } catch { quantizeError = "Couldn't rename model: \(error.localizedDescription)" }
+            quantizeResult = "Renamed checkpoint to \(name)"
+        } catch { quantizeError = "Couldn't rename checkpoint: \(error.localizedDescription)" }
         renaming = nil
         refresh()
     }
@@ -144,7 +151,7 @@ struct CheckpointsView: View {
         do {
             try FileManager.default.copyItem(at: item.url, to: item.url.deletingLastPathComponent().appendingPathComponent(copyName, isDirectory: true))
             quantizeResult = "Duplicated \(item.name)"
-        } catch { quantizeError = "Couldn't duplicate model: \(error.localizedDescription)" }
+        } catch { quantizeError = "Couldn't duplicate checkpoint: \(error.localizedDescription)" }
         refresh()
     }
 

@@ -11,7 +11,7 @@ enum NavSection: String, CaseIterable, Identifiable {
     case chat = "Chat"
     case xray = "X-Ray"
     case embeddings = "Embeddings"
-    case checkpoints = "Models"
+    case checkpoints = "Checkpoints"
     case server = "Local Server"
     case estimator = "Estimator"
     case hardware = "Hardware"
@@ -72,8 +72,8 @@ enum NavSection: String, CaseIterable, Identifiable {
     /// to beginners; analysis and serving remain deliberately expert-oriented.
     var minMode: AppMode {
         switch self {
-        case .welcome, .model, .dataset, .training, .sampling, .chat, .settings, .fineTuneData: return .simple
-        case .recipes, .checkpoints, .estimator, .hardware: return .advanced
+        case .welcome, .model, .dataset, .recipes, .training, .sampling, .chat, .settings, .fineTuneData: return .simple
+        case .checkpoints, .estimator, .hardware: return .advanced
         case .xray, .embeddings, .server, .roadmap: return .expert
         }
     }
@@ -218,15 +218,8 @@ struct ContentView: View {
 
     private var sidebar: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 10) {
-                Image(systemName: "brain.head.profile").foregroundStyle(WorkbenchTheme.accent)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("LABLLM").font(.caption.weight(.bold)).foregroundStyle(WorkbenchTheme.accent)
-                    Text("Local model studio").font(.caption2).foregroundStyle(.secondary)
-                }
-                Spacer()
-            }
-            .padding(.horizontal, 16).padding(.vertical, 18)
+            ModelSwitcherView()
+                .padding(.horizontal, 12).padding(.top, 16).padding(.bottom, 14)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {

@@ -85,19 +85,6 @@ struct HFHubFile: Identifiable, Decodable, Hashable, Sendable {
     var formattedSize: String? { size.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .file) } }
 }
 
-struct CorpusSource: Identifiable {
-    let id = UUID()
-    let name: String
-    let origin: String
-    let text: String
-    var isEnabled = true
-    var percent: Double = 100
-    var selectedText: String {
-        let count = max(1, Int((Double(text.count) * percent / 100).rounded()))
-        return String(text.prefix(count))
-    }
-}
-
 @MainActor
 final class HFHubBrowser: ObservableObject {
     @Published var query = ""

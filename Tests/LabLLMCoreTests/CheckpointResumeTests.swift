@@ -75,8 +75,12 @@ struct CheckpointResumeTests {
             checkpointFormatVersion: 2
         )
         let name = "unit-test-\(UUID().uuidString)"
-        let dir = try Checkpoint.save(model: model, meta: meta, name: name, hardware: nil, optimizerSnapshot: snapshot)
-        defer { try? FileManager.default.removeItem(at: dir) }
+        // Saved into a scratch folder so this test never depends on which model
+        // workspace happens to be active.
+        let parent = FileManager.default.temporaryDirectory.appendingPathComponent("LabLLMCheckpointTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: parent, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: parent) }
+        let dir = try Checkpoint.save(model: model, meta: meta, name: name, hardware: nil, optimizerSnapshot: snapshot, in: parent)
 
         let loadedMeta = try Checkpoint.loadMeta(from: dir)
         let loadedSnapshot = try #require(try Checkpoint.loadOptimizerSnapshot(from: dir, step: loadedMeta.optimizerStep ?? 0))

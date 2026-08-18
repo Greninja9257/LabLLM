@@ -11,12 +11,15 @@ struct EmbeddingsView: View {
             header
             Divider()
             if !trainer.hasModel {
+                // The enclosing stack is leading-aligned, so the placeholder needs the
+                // full width to sit in the middle of the page rather than hugging the edge.
                 ContentUnavailableView("No model to visualize yet", systemImage: "point.3.connected.trianglepath.dotted",
-                    description: Text("Train or load a model first.")).frame(maxHeight: .infinity)
+                    description: Text("Train or load a model first."))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if state.embeddingPoints.isEmpty {
                 ContentUnavailableView("No map yet", systemImage: "circle.grid.3x3",
                     description: Text("Press Compute to project the model's trained token embeddings into 2D."))
-                    .frame(maxHeight: .infinity)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 canvas.frame(maxHeight: .infinity)
             }

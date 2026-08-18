@@ -48,7 +48,7 @@ struct TrainingSample: Identifiable {
     let step: Int
     let text: String
     let method: String
-    let createdAt = Date()
+    var createdAt = Date()
 }
 
 private struct TrainingFailure: LocalizedError {
@@ -75,6 +75,12 @@ final class Trainer: ObservableObject {
     @Published var errorMessage: String? = nil
     @Published var lastCheckpointDir: URL? = nil
     @Published var runIsLoRA = false
+    /// Which kind of run the visible metrics belong to. Sessions are stored per
+    /// mode so each mode's dashboard survives a relaunch.
+    @Published var runMode: RunMode = .pretrain
+    @Published var runMethod: String = ""
+    @Published var runDatasetName: String? = nil
+    @Published var runCompleted = false
 
     var progress: Double {
         guard maxSteps > 0 else { return 0 }
@@ -121,7 +127,7 @@ final class Trainer: ObservableObject {
     func start(gptConfig: GPTConfig, trainConfig: TrainConfig, tokenizer: Tokenizer, corpus: String,
               hardware: HardwareInfo, datasetName: String?, resumeFrom: URL? = nil) {
         guard !isTraining else { return }
-        beginSession(maxSteps: trainConfig.maxSteps, statusMessage: "Preparing…")
+        beginSession(mode: .pretrain, maxSteps: trainConfig.maxSteps, statusMessage: "Preparing…", datasetName: datasetName)
         queue.async {
             self.run(gptConfig, trainConfig, tokenizer, corpus, hardware, datasetName, resumeFrom)
             self.doneSemaphore.signal()
@@ -217,6 +223,8 @@ final class Trainer: ObservableObject {
                                    trainConfig: tc, optimizerSnapshot: optimizer.snapshot(), trainRNGState: trainRNG.state)
         publish {
             self.isTraining = false
+            self.runCompleted = !self.stopRequested
+            self.runMethod = "Pretraining"
             self.statusMessage = self.stopRequested ? "Stopped at step \(self.step) — progress saved"
                 : "Training done" + (final != nil ? " — checkpoint saved" : "")
         }
@@ -228,7 +236,7 @@ final class Trainer: ObservableObject {
                  conversations: [[ChatMessage]], useLoRA: Bool, hardware: HardwareInfo,
                  datasetName: String?, resumeFrom: URL? = nil) {
         guard !isTraining else { return }
-        beginSession(maxSteps: tc.maxSteps, statusMessage: "Preparing fine-tuning…")
+        beginSession(mode: .sft, maxSteps: tc.maxSteps, statusMessage: "Preparing fine-tuning…", datasetName: datasetName)
         queue.async {
             self.runSFT(gptConfig, tc, tokenizer, conversations, useLoRA, hardware, datasetName, resumeFrom)
             self.doneSemaphore.signal()
@@ -351,6 +359,8 @@ final class Trainer: ObservableObject {
                                    trainConfig: tc, optimizerSnapshot: optimizer.snapshot(), trainRNGState: trainRNG.state)
         publish {
             self.isTraining = false
+            self.runCompleted = !self.stopRequested
+            self.runMethod = model.hasLoRA ? "SFT (LoRA)" : "SFT (full)"
             self.statusMessage = self.stopRequested ? "Stopped at step \(self.step) — progress saved"
                 : "Fine-tuning done" + (final != nil ? " — checkpoint saved" : "")
         }
@@ -363,7 +373,7 @@ final class Trainer: ObservableObject {
             publish { self.errorMessage = "DPO needs a fine-tuned model in memory first — run SFT, then DPO." }
             return
         }
-        beginSession(maxSteps: tc.maxSteps, statusMessage: "Preparing DPO…")
+        beginSession(mode: .dpo, maxSteps: tc.maxSteps, statusMessage: "Preparing DPO…")
         queue.async {
             self.runDPO(tc, examples, policyBase, tokenizer, hardware)
             self.doneSemaphore.signal()
@@ -423,6 +433,8 @@ final class Trainer: ObservableObject {
                                    trainConfig: tc, optimizerSnapshot: optimizer.snapshot(), trainRNGState: trainRNG.state)
         publish {
             self.isTraining = false
+            self.runCompleted = !self.stopRequested
+            self.runMethod = "DPO"
             self.statusMessage = self.stopRequested ? "Stopped at step \(self.step) — progress saved"
                 : "DPO done" + (final != nil ? " — checkpoint saved" : "")
         }
@@ -467,6 +479,84 @@ final class Trainer: ObservableObject {
     }
 
     // MARK: - Checkpoint loading for sampling
+
+    // MARK: - Session snapshots
+
+    /// The visible dashboard as a value that can be written to disk.
+    func sessionSnapshot() -> TrainingSession {
+        TrainingSession(
+            mode: runMode,
+            method: runMethod.isEmpty ? runMode.label : runMethod,
+            datasetName: runDatasetName,
+            step: step,
+            maxSteps: maxSteps,
+            trainLoss: trainLoss,
+            valLoss: valLoss,
+            tokensPerSec: tokensPerSec,
+            currentLR: currentLR,
+            runIsLoRA: runIsLoRA,
+            completed: runCompleted,
+            updatedAt: Date(),
+            lossHistory: lossHistory.map { .init(step: $0.step, value: $0.value, isValidation: $0.kind == .val) },
+            samples: sampleHistory.map { .init(step: $0.step, text: $0.text, method: $0.method, createdAt: $0.createdAt) },
+            lastCheckpointPath: lastCheckpointDir?.path)
+    }
+
+    /// Puts a saved dashboard back on screen. Never applied while a run is live,
+    /// since the live numbers are the truth in that case.
+    func restore(session: TrainingSession) {
+        guard !isTraining else { return }
+        runMode = session.mode
+        runMethod = session.method
+        runDatasetName = session.datasetName
+        runCompleted = session.completed
+        step = session.step
+        maxSteps = session.maxSteps
+        trainLoss = session.trainLoss
+        valLoss = session.valLoss
+        tokensPerSec = session.tokensPerSec
+        currentLR = session.currentLR
+        runIsLoRA = session.runIsLoRA
+        lossHistory = session.lossHistory.map { LossPoint(step: $0.step, value: $0.value, kind: $0.isValidation ? .val : .train) }
+        sampleHistory = session.samples.map { TrainingSample(step: $0.step, text: $0.text, method: $0.method, createdAt: $0.createdAt) }
+        lastCheckpointDir = session.lastCheckpointURL
+        liveSample = sampleHistory.last?.text ?? ""
+        statusMessage = session.step > 0 ? "Restored \(session.method) run at step \(session.step)" : "Idle"
+    }
+
+    /// Clears the dashboard when there is no saved session for a mode.
+    func clearSession(mode: RunMode) {
+        guard !isTraining else { return }
+        runMode = mode
+        runMethod = ""
+        runDatasetName = nil
+        runCompleted = false
+        step = 0; maxSteps = 0; trainLoss = 0; valLoss = 0; tokensPerSec = 0; currentLR = 0
+        lossHistory = []; sampleHistory = []; liveSample = ""; lastCheckpointDir = nil
+        statusMessage = "Idle"
+    }
+
+    /// Drops the in-memory model, e.g. when the studio switches to another model
+    /// workspace so sampling and chat never answer from the previous model.
+    func unloadModel() {
+        guard !isTraining else { return }
+        model = nil
+        tokenizer = nil
+        publish {
+            self.hasModel = false
+            self.runIsLoRA = false
+            self.sampleOutput = ""
+            self.liveSample = ""
+            self.sampleHistory = []
+            self.lossHistory = []
+            self.step = 0
+            self.maxSteps = 0
+            self.trainLoss = 0
+            self.valLoss = 0
+            self.lastCheckpointDir = nil
+            self.statusMessage = "Idle"
+        }
+    }
 
     func loadForSampling(model: GPT, tokenizer: Tokenizer) {
         self.model = model
@@ -547,7 +637,7 @@ final class Trainer: ObservableObject {
 
     // MARK: - Shared helpers
 
-    private func beginSession(maxSteps: Int, statusMessage: String) {
+    private func beginSession(mode: RunMode, maxSteps: Int, statusMessage: String, datasetName: String? = nil) {
         stopRequested = false; pauseRequested = false
         errorMessage = nil
         doneSemaphore = DispatchSemaphore(value: 0)
@@ -555,6 +645,8 @@ final class Trainer: ObservableObject {
             self.isTraining = true; self.isPaused = false; self.step = 0
             self.maxSteps = maxSteps; self.lossHistory = []; self.liveSample = ""; self.sampleHistory = []; self.valLoss = 0
             self.statusMessage = statusMessage; self.errorMessage = nil
+            self.runMode = mode; self.runDatasetName = datasetName; self.runCompleted = false
+            self.runMethod = mode.label
         }
     }
 

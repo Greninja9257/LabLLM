@@ -5,9 +5,9 @@ struct WelcomeHomeView: View {
 
     private let primaryActions: [(String, String, String, NavSection)] = [
         ("Design model", "Choose an architecture and scale.", "cube.transparent", .model),
-        ("Pre-training data", "Import a corpus and prepare text.", "text.book.closed", .dataset),
+        ("Pre-training data", "Install a corpus and keep it on disk.", "text.book.closed", .dataset),
         ("Fine-tuning data", "Bring in conversations and instructions.", "tray.full", .fineTuneData),
-        ("Models", "Continue, inspect, or quantize a checkpoint.", "cube.box", .checkpoints)
+        ("Checkpoints", "Continue, inspect, or quantize this model's runs.", "cube.box", .checkpoints)
     ]
 
     var body: some View {

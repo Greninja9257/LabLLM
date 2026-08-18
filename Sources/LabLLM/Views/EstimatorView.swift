@@ -44,7 +44,9 @@ struct EstimatorView: View {
                         cell("Tokens / step", format(tokensPerStep))
                         cell("Total tokens", format(totalTokens))
                         cell("Steps", format(tc.maxSteps))
-                        cell("Corpus tokens", state.tokenizer != nil ? format(state.tokenizer!.encode(state.corpus).count) : "—")
+                        // Only measurable once the selected mix has been read off disk;
+                        // otherwise fall back to the character estimate from metadata.
+                        cell("Corpus tokens", corpusTokenEstimate)
                     }
                 }
 
@@ -59,6 +61,14 @@ struct EstimatorView: View {
             }
             .padding(WorkbenchTheme.pagePadding)
         }
+    }
+
+    private var corpusTokenEstimate: String {
+        if state.isCorpusLoaded, let tokenizer = state.tokenizer {
+            return format(tokenizer.encode(state.corpus).count)
+        }
+        guard state.hasCorpus else { return "—" }
+        return "≈ \(format(state.corpusCharCount))"
     }
 
     private func grid<C: View>(@ViewBuilder _ c: () -> C) -> some View {

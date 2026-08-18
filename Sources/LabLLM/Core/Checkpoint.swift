@@ -43,17 +43,28 @@ enum Checkpoint {
         var checkpointFormatVersion: Int? = nil
     }
 
+    /// Folder of the model workspace that is currently active. `ModelStore` keeps
+    /// this pointed at the selected model so each model owns its own checkpoints;
+    /// when nothing is selected (tests, previews) storage falls back to the shared
+    /// legacy folder.
+    static var activeModelDirectory: URL?
+
     static func directory() -> URL {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("LabLLM/Checkpoints", isDirectory: true)
+        let base = activeModelDirectory?.appendingPathComponent("Checkpoints", isDirectory: true)
+            ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("LabLLM/Checkpoints", isDirectory: true)
         try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
         return base
     }
 
+    /// `in:` overrides the destination folder. Callers in the app leave it nil so
+    /// the save lands in the active model's folder; tests pass their own directory
+    /// so they never depend on (or race with) the active-model global.
     @discardableResult
     static func save(model: GPT, meta: Meta, name: String, hardware: HardwareInfo? = nil,
-                     optimizerSnapshot: TrainingOptimizerSnapshot? = nil) throws -> URL {
-        let dir = directory().appendingPathComponent(name, isDirectory: true)
+                     optimizerSnapshot: TrainingOptimizerSnapshot? = nil,
+                     in parentDirectory: URL? = nil) throws -> URL {
+        let dir = (parentDirectory ?? directory()).appendingPathComponent(name, isDirectory: true)
         do {
             try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         } catch { throw CheckpointError.directoryCreationFailed(error.localizedDescription) }

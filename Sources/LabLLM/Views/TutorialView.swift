@@ -86,7 +86,7 @@ struct TutorialView: View {
         case 1: return state.hasCorpus ? "checkmark.circle.fill" : "circle"
         case 2: return trainer.isTraining || trainer.step > 0 ? "checkmark.circle.fill" : "circle"
         case 3: return trainer.hasModel ? "checkmark.circle.fill" : "circle"
-        case 4: return state.sftSources.isEmpty ? "circle" : "checkmark.circle.fill"
+        case 4: return state.hasFineTuneData ? "checkmark.circle.fill" : "circle"
         default: return "checkmark.circle.fill"
         }
     }

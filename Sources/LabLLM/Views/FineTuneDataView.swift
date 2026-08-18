@@ -9,15 +9,21 @@ struct FineTuneDataView: View {
     @State private var importingSFT = false
     @State private var importingIMessage = false
 
+    /// Recommended sources stay pinned to the top in every mode. They are the
+    /// repositories known to import cleanly here, which is just as useful to an
+    /// expert as to a beginner.
     private var displayedResults: [HFHubDataset] {
-        guard prefs.mode == .simple else { return browser.results }
         let remote = browser.results.filter { remote in !browser.pinned.contains(where: { $0.id == remote.id }) }
         return browser.pinned + remote.sorted { ($0.downloads ?? 0) > ($1.downloads ?? 0) }
     }
 
+    private func isRecommended(_ dataset: HFHubDataset) -> Bool {
+        browser.pinned.contains { $0.displayName == dataset.displayName && $0.id == dataset.id }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            WorkbenchPageHeader(eyebrow: "Dataset Studio", title: "Fine-tuning Data", subtitle: "Find compatible instruction datasets, inspect their JSONL files, and compose the exact mix for SFT.", icon: "tray.full")
+            WorkbenchPageHeader(eyebrow: "Dataset Studio", title: "Fine-tuning Data", subtitle: "Find compatible instruction datasets and install them to disk. The SFT mix itself is composed in Training.", icon: "tray.full")
                 .padding(.horizontal, WorkbenchTheme.pagePadding).padding(.top, 22).padding(.bottom, 14)
             GeometryReader { proxy in
                 let browserWidth = min(320, max(220, proxy.size.width * 0.34))
@@ -63,14 +69,15 @@ struct FineTuneDataView: View {
                 Text(browser.activityDetail).font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
             }
             if prefs.showDatasetHints {
-                Text("Results prioritize importable instruction and conversation data, including Parquet-backed datasets.").font(.caption).foregroundStyle(.secondary)
+                Label("Starred sources are pinned first in every mode. Results prioritize importable instruction and conversation data, including Parquet-backed datasets.", systemImage: "sparkles")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             if browser.isLoading && browser.results.isEmpty { ProgressView("Searching datasets…").frame(maxWidth: .infinity, maxHeight: .infinity) }
             else {
                 ScrollView {
                     LazyVStack(spacing: 4) {
                         ForEach(displayedResults) { dataset in
-                            FineTuneBrowserRow(dataset: dataset, isSelected: browser.selected == dataset)
+                            FineTuneBrowserRow(dataset: dataset, isSelected: browser.selected == dataset, recommended: isRecommended(dataset))
                                 .contentShape(Rectangle())
                                 .onTapGesture { browser.select(dataset) }
                                 .onAppear { browser.loadMoreIfNeeded(dataset) }
@@ -84,17 +91,28 @@ struct FineTuneDataView: View {
         .padding(16).background(WorkbenchTheme.panel)
     }
 
-    @ViewBuilder private var inspectorPane: some View {
-        if let dataset = browser.selected {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+    private var inspectorPane: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                if let dataset = browser.selected {
+                    datasetDetail(dataset)
+                } else {
+                    WorkbenchEmptyState(icon: "rectangle.and.text.magnifyingglass", title: "Select a dataset", message: "Inspect a compatible JSONL dataset before installing it.")
+                }
+                InstalledDatasetsPanel(kind: .fineTune)
+            }.padding(WorkbenchTheme.pagePadding)
+        }
+    }
+
+    @ViewBuilder private func datasetDetail(_ dataset: HFHubDataset) -> some View {
+        VStack(alignment: .leading, spacing: 20) {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 5) {
                             Text(dataset.displayName).font(.title2.bold())
                             Text(dataset.id).font(.callout.monospaced()).foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Button(prefs.mode == .simple ? "Download and use" : "Add to fine-tuning mix") { importSelected(dataset) }
+                        Button(prefs.mode == .simple ? "Download and install" : "Install dataset") { importSelected(dataset) }
                             .buttonStyle(WorkbenchPrimaryButtonStyle())
                             .disabled(browser.selectedFile == nil && browser.viewerSource == nil)
                             .tutorialTarget(.fineTuneSourceAdded)
@@ -119,43 +137,8 @@ struct FineTuneDataView: View {
                     }
                     GroupBox("Dataset card") {
                         if browser.isLoadingReadme { ProgressView("Loading README…") }
-                        else { FineTuneMarkdownPreview(markdown: browser.readme) }
+                        else { DatasetCardPreview(markdown: browser.readme) }
                     }
-                    if !state.sftSources.isEmpty { mixer }
-                }.padding(WorkbenchTheme.pagePadding)
-            }
-        } else {
-            WorkbenchEmptyState(icon: "rectangle.and.text.magnifyingglass", title: "Select a dataset", message: "Inspect a compatible JSONL dataset before adding it to your fine-tuning mix.").padding(WorkbenchTheme.pagePadding)
-        }
-    }
-
-    private var mixer: some View {
-        GroupBox("Fine-tuning mix") {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("\(state.sftConversations.count) selected conversations · \(state.sftPairCount) pairs").font(.headline)
-                ForEach($state.sftSources) { $source in
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Toggle(source.name, isOn: $source.isEnabled).toggleStyle(.checkbox)
-                            Spacer()
-                            Text("\(source.selectedCount) rows · \(source.selectedPairCount) pairs")
-                                .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
-                        }
-                        Picker("Selection", selection: $source.limitMode) { ForEach(DatasetLimitMode.allCases) { Text($0.rawValue).tag($0) } }
-                            .pickerStyle(.segmented)
-                        if source.limitMode == .percent {
-                            HStack { Slider(value: $source.percent, in: 1...100, step: 1); Text("\(Int(source.percent))%").font(.caption.monospacedDigit()).frame(width: 42) }
-                        } else {
-                            Stepper("\(source.lineLimit) rows", value: $source.lineLimit, in: 1...max(1, source.conversations.count))
-                        }
-                    }
-                    .padding(10).background(WorkbenchTheme.elevatedPanel, in: RoundedRectangle(cornerRadius: WorkbenchTheme.cornerRadius, style: .continuous))
-                    .onChange(of: source.isEnabled) { _ in state.rebuildSFTMix() }
-                    .onChange(of: source.limitMode) { _ in state.rebuildSFTMix() }
-                    .onChange(of: source.percent) { _ in state.rebuildSFTMix() }
-                    .onChange(of: source.lineLimit) { _ in state.rebuildSFTMix() }
-                }
-            }
         }
     }
 
@@ -180,30 +163,17 @@ struct FineTuneDataView: View {
     private func format(_ number: Int) -> String { NumberFormatter.localizedString(from: NSNumber(value: number), number: .decimal) }
 }
 
-private struct FineTuneMarkdownPreview: View {
-    let markdown: String
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 8) {
-                ForEach(Array(markdown.split(separator: "\n", omittingEmptySubsequences: false).enumerated()), id: \.offset) { _, line in
-                    let text = String(line)
-                    if text.hasPrefix("### ") { Text(String(text.dropFirst(4))).font(.headline) }
-                    else if text.hasPrefix("## ") { Text(String(text.dropFirst(3))).font(.title3.bold()) }
-                    else if text.hasPrefix("# ") { Text(String(text.dropFirst(2))).font(.title2.bold()) }
-                    else if text.hasPrefix("- ") { Label(String(text.dropFirst(2)), systemImage: "circle.fill").font(.callout).foregroundStyle(.secondary) }
-                    else if !text.isEmpty { Text(text).font(.callout).foregroundStyle(.secondary).textSelection(.enabled) }
-                }
-            }.frame(maxWidth: .infinity, alignment: .leading)
-        }.frame(maxHeight: 360)
-    }
-}
-
 private struct FineTuneBrowserRow: View {
     let dataset: HFHubDataset
     let isSelected: Bool
+    let recommended: Bool
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(dataset.displayName).font(.callout.weight(.semibold)).lineLimit(1)
+            HStack {
+                Text(dataset.displayName).font(.callout.weight(.semibold)).lineLimit(1)
+                Spacer()
+                if recommended { Image(systemName: "star.fill").font(.caption2).foregroundStyle(.yellow) }
+            }
             Text(dataset.id).font(.caption2.monospaced()).foregroundStyle(.secondary).lineLimit(1)
             HStack { Text(dataset.summary).font(.caption2).foregroundStyle(.secondary).lineLimit(1); Spacer(); Text(dataset.estimatedRows.map { "\($0) rows" } ?? "\(dataset.downloads ?? 0)").font(.caption2.monospacedDigit()).foregroundStyle(.secondary) }
         }

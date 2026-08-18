@@ -1,27 +1,44 @@
+import Combine
 import Foundation
 import SwiftUI
 
 @MainActor
 final class AppState: ObservableObject {
-    @Published var gptConfig = GPTConfig()
-    @Published var trainConfig = TrainConfig()
-    @Published var tokenizerKind: TokenizerKind = .character
-    @Published var bpeTargetVocab: Int = 800
+    // Model-workspace backed configuration. Changing any of these updates the
+    // active model's saved definition, so switching models switches the whole setup.
+    @Published var gptConfig = GPTConfig() { didSet { markWorkspaceDirty() } }
+    @Published var trainConfig = TrainConfig() { didSet { markWorkspaceDirty() } }
+    @Published var tokenizerKind: TokenizerKind = .character { didSet { markWorkspaceDirty() } }
+    @Published var bpeTargetVocab: Int = 800 { didSet { markWorkspaceDirty() } }
 
-    @Published var corpus = ""
-    @Published var corpusName = "No corpus selected"
-    @Published var corpusSources: [CorpusSource] = []
+    /// Which installed datasets this model trains on, and how much of each. Mixing
+    /// belongs to the run, so it is configured in Training rather than in the
+    /// dataset browsers.
+    @Published var corpusMix: [DatasetSelection] = [] { didSet { markWorkspaceDirty() } }
+    @Published var fineTuneMix: [DatasetSelection] = [] { didSet { markWorkspaceDirty() } }
+
+    /// Materialized training data. Empty until the selected mix is read off disk —
+    /// see `prepareCorpus` / `prepareFineTuneData`.
+    @Published private(set) var corpus = ""
+    @Published private(set) var isCorpusLoaded = false
+    @Published private(set) var sftConversations: [[ChatMessage]] = []
+    @Published private(set) var isFineTuneDataLoaded = false
+    @Published private(set) var isLoadingMix = false
+
     @Published var tokenizer: Tokenizer?
 
-    // SFT / DPO data currently loaded
-    @Published var sftConversations: [[ChatMessage]] = []
-    @Published var sftDatasetName = "No fine-tuning data selected"
-    @Published var sftSources: [SFTDataSource] = []
     @Published var dpoExamples: [PreferenceExample] = []
     @Published var dpoDatasetName = "No preference data selected"
     @Published var datasetImportError: String?
     @Published var pendingContinuation: (url: URL, meta: Checkpoint.Meta)?
+
+    let library = DatasetLibrary()
+    let models = ModelStore()
     let dataImport = DataImportState()
+
+    /// Mixes above this size are not loaded automatically on launch or after a
+    /// settings change; they are read when a run actually starts.
+    private static let autoLoadByteBudget = 64 * 1_024 * 1_024
 
     private enum ViewerImportKind { case corpus, fineTune }
     private struct ViewerImportJob {
@@ -35,45 +52,421 @@ final class AppState: ObservableObject {
     }
     private var viewerImportQueue: [ViewerImportJob] = []
     private var activeDataImportTask: Task<Void, Never>?
+    private var workspaceSaveScheduled = false
+    private var isApplyingWorkspace = false
+    /// Recipe waiting on its dataset download to finish.
+    private var pendingRecipe: Recipe?
+    private var pendingRecipeDatasetID: UUID?
 
     // Embedding map
     @Published var embeddingPoints: [EmbeddingPoint] = []
     @Published var isComputingEmbeddings = false
 
     @Published var trainer = Trainer()
+    /// Saved dashboards (loss curve, metrics, samples) for this model, one per run
+    /// mode, restored on launch and whenever the studio switches models.
+    @Published private(set) var sessions: [RunMode: TrainingSession] = [:]
     let loading = LoadingState()
     let hardware = HardwareInfo.current()
 
-    var corpusCharCount: Int { corpus.count }
-    var hasCorpus: Bool { !corpus.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-    var sftPairCount: Int {
-        sftConversations.reduce(0) { $0 + ConversationImport.pairCount(in: $1) }
+    private var sessionObservers: Set<AnyCancellable> = []
+
+    init() {
+        applyActiveWorkspace()
+        observeTrainerForSessionSaves()
     }
 
+    // MARK: - Run sessions
+
+    /// Runs report continuously, so saves are throttled while training and forced
+    /// once when a run ends (including a stop, which still saves a checkpoint).
+    private func observeTrainerForSessionSaves() {
+        trainer.$step
+            .throttle(for: .seconds(5), scheduler: DispatchQueue.main, latest: true)
+            .sink { [weak self] _ in
+                guard let self, self.trainer.isTraining else { return }
+                self.captureSession()
+            }
+            .store(in: &sessionObservers)
+
+        trainer.$isTraining
+            .removeDuplicates()
+            .dropFirst()
+            .sink { [weak self] isTraining in
+                guard let self, !isTraining else { return }
+                // The run's final numbers land right after this flips.
+                DispatchQueue.main.async { self.captureSession() }
+            }
+            .store(in: &sessionObservers)
+    }
+
+    /// Writes the visible dashboard into this model's `sessions.json`.
+    func captureSession() {
+        guard let id = models.activeID else { return }
+        let snapshot = trainer.sessionSnapshot()
+        guard snapshot.step > 0 else { return }
+        sessions[snapshot.mode] = snapshot
+        TrainingSessionStore.save(sessions, to: models.directory(for: id))
+    }
+
+    private func loadSessions() {
+        guard let id = models.activeID else { sessions = [:]; return }
+        sessions = TrainingSessionStore.load(from: models.directory(for: id))
+        if let latest = sessions.values.max(by: { $0.updatedAt < $1.updatedAt }) {
+            trainer.restore(session: latest)
+        } else {
+            trainer.clearSession(mode: .pretrain)
+        }
+    }
+
+    /// Shows the saved dashboard for a mode when the user switches the Training
+    /// page between Pretrain, Fine-tune and DPO.
+    func showSession(for mode: RunMode) {
+        guard !trainer.isTraining, trainer.runMode != mode || sessions[mode] == nil else { return }
+        if let session = sessions[mode] { trainer.restore(session: session) }
+        else { trainer.clearSession(mode: mode) }
+    }
+
+    func session(for mode: RunMode) -> TrainingSession? { sessions[mode] }
+
+    // MARK: - Model workspaces
+
+    var activeModelName: String { models.activeName }
+
+    /// Persist the current configuration, then switch the studio to another model.
+    func activateModel(_ id: UUID) {
+        guard id != models.activeID else { return }
+        captureSession()
+        saveWorkspace()
+        models.select(id)
+        applyActiveWorkspace()
+    }
+
+    func createModel(named name: String) {
+        captureSession()
+        saveWorkspace()
+        let workspace = models.create(named: name)
+        models.select(workspace.id)
+        applyActiveWorkspace()
+    }
+
+    func renameActiveModel(to name: String) {
+        guard let id = models.activeID else { return }
+        models.rename(id, to: name)
+    }
+
+    func duplicateActiveModel() {
+        guard let id = models.activeID else { return }
+        captureSession()
+        saveWorkspace()
+        if let copy = models.duplicate(id) {
+            models.select(copy.id)
+            applyActiveWorkspace()
+        }
+    }
+
+    func deleteActiveModel() {
+        guard let id = models.activeID else { return }
+        models.delete(id)
+        applyActiveWorkspace()
+    }
+
+    /// Loads the active model's saved definition into the studio and resets any
+    /// in-memory model/tokenizer that belonged to the previous one.
+    private func applyActiveWorkspace() {
+        guard let workspace = models.active else { return }
+        isApplyingWorkspace = true
+        gptConfig = workspace.gptConfig
+        trainConfig = workspace.trainConfig
+        tokenizerKind = workspace.tokenizerKind
+        bpeTargetVocab = workspace.bpeTargetVocab
+        corpusMix = pruneMissing(workspace.corpusMix, kind: .corpus)
+        fineTuneMix = pruneMissing(workspace.fineTuneMix, kind: .fineTune)
+        isApplyingWorkspace = false
+
+        tokenizer = nil
+        pendingContinuation = nil
+        trainer.unloadModel()
+        loadSessions()
+        invalidateCorpus()
+        invalidateFineTuneData()
+        loadMixIfSmall()
+    }
+
+    private func pruneMissing(_ mix: [DatasetSelection], kind: InstalledDataset.Kind) -> [DatasetSelection] {
+        mix.filter { selection in library.dataset(selection.datasetID)?.kind == kind }
+    }
+
+    private func markWorkspaceDirty() {
+        guard !isApplyingWorkspace, !workspaceSaveScheduled else { return }
+        workspaceSaveScheduled = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.workspaceSaveScheduled = false
+            self.saveWorkspace()
+        }
+    }
+
+    func saveWorkspace() {
+        guard var workspace = models.active else { return }
+        workspace.gptConfig = gptConfig
+        workspace.trainConfig = trainConfig
+        workspace.tokenizerKind = tokenizerKind
+        workspace.bpeTargetVocab = bpeTargetVocab
+        workspace.corpusMix = corpusMix
+        workspace.fineTuneMix = fineTuneMix
+        models.save(workspace)
+    }
+
+    // MARK: - Mix summaries (metadata only, no file reads)
+
+    var selectedCorpusDatasets: [(dataset: InstalledDataset, selection: DatasetSelection)] {
+        corpusMix.compactMap { selection in
+            guard selection.isEnabled, let dataset = library.dataset(selection.datasetID) else { return nil }
+            return (dataset, selection)
+        }
+    }
+
+    var selectedFineTuneDatasets: [(dataset: InstalledDataset, selection: DatasetSelection)] {
+        fineTuneMix.compactMap { selection in
+            guard selection.isEnabled, let dataset = library.dataset(selection.datasetID) else { return nil }
+            return (dataset, selection)
+        }
+    }
+
+    var corpusCharCount: Int {
+        isCorpusLoaded ? corpus.count : selectedCorpusDatasets.reduce(0) { $0 + $1.selection.selectedCharacters(in: $1.dataset) }
+    }
+
+    var hasCorpus: Bool { !selectedCorpusDatasets.isEmpty }
+
+    var corpusName: String {
+        let selected = selectedCorpusDatasets
+        switch selected.count {
+        case 0: return "No corpus selected"
+        case 1: return selected[0].dataset.name
+        default: return "Merged \(selected.count) corpora"
+        }
+    }
+
+    var sftDatasetName: String {
+        let selected = selectedFineTuneDatasets
+        switch selected.count {
+        case 0: return "No fine-tuning data selected"
+        case 1: return selected[0].dataset.name
+        default: return "Merged \(selected.count) datasets"
+        }
+    }
+
+    var sftRowCount: Int {
+        isFineTuneDataLoaded ? sftConversations.count
+            : selectedFineTuneDatasets.reduce(0) { $0 + $1.selection.selectedRows(in: $1.dataset) }
+    }
+
+    var sftPairCount: Int {
+        isFineTuneDataLoaded ? sftConversations.reduce(0) { $0 + ConversationImport.pairCount(in: $1) }
+            : selectedFineTuneDatasets.reduce(0) { $0 + $1.selection.selectedPairs(in: $1.dataset) }
+    }
+
+    var hasFineTuneData: Bool { !selectedFineTuneDatasets.isEmpty }
+
+    private var selectedMixBytes: Int {
+        selectedCorpusDatasets.reduce(0) { $0 + $1.dataset.bytes } +
+        selectedFineTuneDatasets.reduce(0) { $0 + $1.dataset.bytes }
+    }
+
+    // MARK: - Mix editing
+
+    func setMixEnabled(_ enabled: Bool, for datasetID: UUID, kind: InstalledDataset.Kind) {
+        update(datasetID, kind: kind) { $0.isEnabled = enabled }
+    }
+
+    func setMixLimitMode(_ mode: DatasetLimitMode, for datasetID: UUID, kind: InstalledDataset.Kind) {
+        update(datasetID, kind: kind) { $0.limitMode = mode }
+    }
+
+    func setMixPercent(_ percent: Double, for datasetID: UUID, kind: InstalledDataset.Kind) {
+        update(datasetID, kind: kind) { $0.percent = percent }
+    }
+
+    func setMixLineLimit(_ limit: Int, for datasetID: UUID, kind: InstalledDataset.Kind) {
+        update(datasetID, kind: kind) { $0.lineLimit = limit }
+    }
+
+    func addToMix(_ dataset: InstalledDataset) {
+        switch dataset.kind {
+        case .corpus:
+            guard !corpusMix.contains(where: { $0.datasetID == dataset.id }) else { return }
+            corpusMix.append(DatasetSelection(datasetID: dataset.id))
+            invalidateCorpus()
+        case .fineTune:
+            guard !fineTuneMix.contains(where: { $0.datasetID == dataset.id }) else { return }
+            fineTuneMix.append(DatasetSelection(datasetID: dataset.id, lineLimit: dataset.rows))
+            invalidateFineTuneData()
+        }
+        loadMixIfSmall()
+    }
+
+    func removeFromMix(_ datasetID: UUID, kind: InstalledDataset.Kind) {
+        switch kind {
+        case .corpus: corpusMix.removeAll { $0.datasetID == datasetID }; invalidateCorpus()
+        case .fineTune: fineTuneMix.removeAll { $0.datasetID == datasetID }; invalidateFineTuneData()
+        }
+        loadMixIfSmall()
+    }
+
+    /// Deletes an installed dataset from disk and from every model's mix.
+    func uninstall(_ dataset: InstalledDataset) {
+        library.remove(dataset)
+        for var workspace in models.models {
+            let before = workspace.corpusMix.count + workspace.fineTuneMix.count
+            workspace.corpusMix.removeAll { $0.datasetID == dataset.id }
+            workspace.fineTuneMix.removeAll { $0.datasetID == dataset.id }
+            if before != workspace.corpusMix.count + workspace.fineTuneMix.count { models.save(workspace) }
+        }
+        isApplyingWorkspace = true
+        corpusMix.removeAll { $0.datasetID == dataset.id }
+        fineTuneMix.removeAll { $0.datasetID == dataset.id }
+        isApplyingWorkspace = false
+        switch dataset.kind {
+        case .corpus: invalidateCorpus()
+        case .fineTune: invalidateFineTuneData()
+        }
+        loadMixIfSmall()
+    }
+
+    private func update(_ datasetID: UUID, kind: InstalledDataset.Kind, _ change: (inout DatasetSelection) -> Void) {
+        switch kind {
+        case .corpus:
+            guard let index = corpusMix.firstIndex(where: { $0.datasetID == datasetID }) else { return }
+            change(&corpusMix[index])
+            invalidateCorpus()
+        case .fineTune:
+            guard let index = fineTuneMix.firstIndex(where: { $0.datasetID == datasetID }) else { return }
+            change(&fineTuneMix[index])
+            invalidateFineTuneData()
+        }
+        loadMixIfSmall()
+    }
+
+    private func invalidateCorpus() {
+        corpus = ""
+        isCorpusLoaded = false
+        tokenizer = nil
+    }
+
+    private func invalidateFineTuneData() {
+        sftConversations = []
+        isFineTuneDataLoaded = false
+    }
+
+    // MARK: - Materializing the mix
+
+    /// Reads whatever the mix needs from disk without blocking the UI. Small mixes
+    /// load on their own; anything large waits until a run is actually started.
+    private func loadMixIfSmall() {
+        guard selectedMixBytes <= Self.autoLoadByteBudget else { return }
+        if !isCorpusLoaded && hasCorpus { prepareCorpus() }
+        if !isFineTuneDataLoaded && hasFineTuneData { prepareFineTuneData() }
+    }
+
+    func prepareCorpus(then completion: (() -> Void)? = nil) {
+        guard !isCorpusLoaded else { completion?(); return }
+        let plan = selectedCorpusDatasets.map { (url: library.fileURL(for: $0.dataset), selection: $0.selection) }
+        guard !plan.isEmpty else { corpus = ""; isCorpusLoaded = true; completion?(); return }
+        isLoadingMix = true
+        DispatchQueue.global(qos: .userInitiated).async {
+            var parts: [String] = []
+            var failures: [String] = []
+            for item in plan {
+                guard let text = try? String(contentsOf: item.url, encoding: .utf8) else {
+                    failures.append(item.url.deletingLastPathComponent().lastPathComponent)
+                    continue
+                }
+                parts.append(Self.limited(text: text, selection: item.selection))
+            }
+            let merged = parts.joined(separator: "\n\n")
+            DispatchQueue.main.async {
+                self.corpus = merged
+                self.isCorpusLoaded = true
+                self.isLoadingMix = false
+                self.tokenizer = nil
+                if !failures.isEmpty {
+                    self.datasetImportError = "\(failures.count) installed corpus file(s) couldn't be read and were skipped."
+                }
+                completion?()
+            }
+        }
+    }
+
+    func prepareFineTuneData(then completion: (() -> Void)? = nil) {
+        guard !isFineTuneDataLoaded else { completion?(); return }
+        let plan = selectedFineTuneDatasets.map { (url: library.fileURL(for: $0.dataset), selection: $0.selection) }
+        guard !plan.isEmpty else { sftConversations = []; isFineTuneDataLoaded = true; completion?(); return }
+        isLoadingMix = true
+        DispatchQueue.global(qos: .userInitiated).async {
+            var merged: [[ChatMessage]] = []
+            for item in plan {
+                guard let raw = try? String(contentsOf: item.url, encoding: .utf8) else { continue }
+                let parsed = ConversationImport.parseJSONL(raw)
+                merged.append(contentsOf: parsed.prefix(item.selection.selectedCount(of: parsed.count)))
+            }
+            DispatchQueue.main.async {
+                self.sftConversations = merged
+                self.isFineTuneDataLoaded = true
+                self.isLoadingMix = false
+                completion?()
+            }
+        }
+    }
+
+    nonisolated private static func limited(text: String, selection: DatasetSelection) -> String {
+        switch selection.limitMode {
+        case .percent:
+            guard selection.percent < 100 else { return text }
+            let count = max(1, Int((Double(text.count) * selection.percent / 100).rounded()))
+            return String(text.prefix(count))
+        case .lines:
+            guard selection.lineLimit > 0 else { return "" }
+            return text.split(separator: "\n", omittingEmptySubsequences: false)
+                .prefix(selection.lineLimit).joined(separator: "\n")
+        }
+    }
+
+    // MARK: - Tokenizers
+
     func buildTokenizer() {
-        let tok: Tokenizer = tokenizerKind == .byte ? .byte() : .character(from: corpus)
-        tokenizer = tok
-        gptConfig.vocabSize = tok.vocabSize
+        prepareCorpus { [weak self] in
+            guard let self else { return }
+            let tok: Tokenizer = self.tokenizerKind == .byte ? .byte() : .character(from: self.corpus)
+            self.tokenizer = tok
+            self.gptConfig.vocabSize = tok.vocabSize
+        }
     }
 
     /// Trains a real BPE tokenizer on the current corpus. Runs off the main thread
     /// since training is O(merges × corpus) and would otherwise freeze the UI.
     func buildBPETokenizer() {
-        loading.begin("Training BPE tokenizer", detail: "0%")
-        let text = corpus
-        let target = bpeTargetVocab
-        let loading = loading
-        DispatchQueue.global(qos: .userInitiated).async {
-            let tok = Tokenizer.bpeTrained(from: text, targetVocabSize: target) { p in
-                loading.update(detail: "\(Int(p * 100))%", progress: p)
-            }
-            DispatchQueue.main.async {
-                self.tokenizer = tok
-                self.gptConfig.vocabSize = tok.vocabSize
-                self.loading.end()
+        prepareCorpus { [weak self] in
+            guard let self else { return }
+            self.loading.begin("Training BPE tokenizer", detail: "0%")
+            let text = self.corpus
+            let target = self.bpeTargetVocab
+            let loading = self.loading
+            DispatchQueue.global(qos: .userInitiated).async {
+                let tok = Tokenizer.bpeTrained(from: text, targetVocabSize: target) { p in
+                    loading.update(detail: "\(Int(p * 100))%", progress: p)
+                }
+                DispatchQueue.main.async {
+                    self.tokenizer = tok
+                    self.gptConfig.vocabSize = tok.vocabSize
+                    self.loading.end()
+                }
             }
         }
     }
+
+    // MARK: - Installing data
 
     func loadCorpus(from url: URL) {
         loading.begin("Loading corpus", detail: "0% · \(url.lastPathComponent)")
@@ -88,7 +481,7 @@ final class AppState: ObservableObject {
                 text = ""
             }
             DispatchQueue.main.async {
-                self.addCorpusSource(name: url.lastPathComponent, origin: "Local text", text: text)
+                self.installCorpus(name: url.lastPathComponent, origin: "Local text", text: text)
                 self.loading.end()
             }
         }
@@ -112,8 +505,7 @@ final class AppState: ObservableObject {
                         self.finishViewerImport(error: nil)
                         return
                     }
-                    self.addCorpusSource(name: dataset.displayName, origin: "Hugging Face · \(dataset.id)", text: text)
-                    self.tokenizer = nil
+                    self.installCorpus(name: dataset.displayName, origin: "Hugging Face · \(dataset.id)", text: text)
                     self.finishViewerImport(error: nil)
                 }
             } catch is CancellationError {
@@ -130,63 +522,215 @@ final class AppState: ObservableObject {
         enqueueViewerImport(.init(dataset: dataset, source: source, limit: limit, kind: .corpus, priority: 100))
     }
 
-    func addCorpusSource(name: String, origin: String, text: String) {
-        corpusSources.append(CorpusSource(name: name, origin: origin, text: text))
-        rebuildCorpusMix()
+    /// Writes an imported corpus into the on-disk library and adds it to this
+    /// model's mix, so it is still there after a relaunch.
+    @discardableResult
+    func installCorpus(name: String, origin: String, text: String) -> InstalledDataset? {
+        do {
+            let entry = try library.installCorpus(name: name, origin: origin, text: text)
+            addToMix(entry)
+            finishRecipeInstallIfNeeded(entry)
+            return entry
+        } catch {
+            datasetImportError = error.localizedDescription
+            return nil
+        }
     }
 
-    func rebuildCorpusMix() {
-        let enabled = corpusSources.filter(\.isEnabled)
-        corpus = enabled.map(\.selectedText).joined(separator: "\n\n")
-        corpusName = enabled.isEmpty ? "No corpus selected" : enabled.count == 1 ? enabled[0].name : "Merged \(enabled.count) corpora"
-        tokenizer = nil
+    @discardableResult
+    func installFineTuneData(name: String, origin: String, conversations: [[ChatMessage]]) -> InstalledDataset? {
+        do {
+            let entry = try library.installFineTune(name: name, origin: origin, conversations: conversations)
+            addToMix(entry)
+            finishRecipeInstallIfNeeded(entry)
+            return entry
+        } catch {
+            datasetImportError = error.localizedDescription
+            return nil
+        }
     }
 
-    func apply(_ recipe: Recipe) {
+    // MARK: - Recipes
+
+    /// Progress of the recipe currently being set up, so the launcher can report
+    /// what it is doing instead of silently downloading in the background.
+    @Published var recipeStatus: String?
+
+    /// Applies a recipe end to end: architecture, hyperparameters and tokenizer,
+    /// then the dataset it needs (installing it from the Hub when missing), then
+    /// hands the user to Training on the right mode, ready to start.
+    func run(_ recipe: Recipe, inNewModel: Bool) {
+        if inNewModel { createModel(named: recipe.name) }
+
         tokenizerKind = recipe.tokenizer
-        let tok: Tokenizer = recipe.tokenizer == .byte ? .byte() : .character(from: corpus)
-        tokenizer = tok
-        var g = recipe.gpt
-        g.vocabSize = tok.vocabSize
-        gptConfig = g
+        var config = recipe.gpt
+        config.vocabSize = gptConfig.vocabSize
+        gptConfig = config
         trainConfig = recipe.train
+        tokenizer = nil
+
+        prepareRecipeData(recipe)
+
+        NotificationCenter.default.post(name: .prepareTrainingContinuation,
+                                        object: recipe.mode == .sft ? "sft" : recipe.mode == .dpo ? "dpo" : "pretrain")
+        NotificationCenter.default.post(name: .navigateToSection, object: NavSection.training.rawValue)
+    }
+
+    /// True when this recipe's dataset is already in the library.
+    func installedDataset(for recipe: Recipe) -> InstalledDataset? {
+        library.datasets.first { $0.kind == recipe.data.kind && $0.origin.contains(recipe.data.repo) }
+    }
+
+    private func prepareRecipeData(_ recipe: Recipe) {
+        // Start from a clean mix for the kind this recipe trains on, so a recipe
+        // never silently inherits whatever the previous run happened to use.
+        switch recipe.data.kind {
+        case .corpus: corpusMix.removeAll(); invalidateCorpus()
+        case .fineTune: fineTuneMix.removeAll(); invalidateFineTuneData()
+        }
+
+        if let installed = installedDataset(for: recipe) {
+            addToMix(installed)
+            applyRecipeShare(recipe, to: installed)
+            recipeStatus = "\(recipe.name) is ready — \(installed.name) is already installed."
+            return
+        }
+        downloadRecipeDataset(recipe)
+    }
+
+    private func applyRecipeShare(_ recipe: Recipe, to dataset: InstalledDataset) {
+        guard recipe.corpusPercent < 100 else { return }
+        setMixPercent(recipe.corpusPercent, for: dataset.id, kind: dataset.kind)
+    }
+
+    /// Finds a usable file in the recipe's repository (preferring the one the
+    /// recipe names) and falls back to the Dataset Viewer when the repo stores its
+    /// data as Parquet.
+    private func downloadRecipeDataset(_ recipe: Recipe) {
+        let target = recipe.data
+        recipeStatus = "Installing \(target.title) for \(recipe.name)…"
+        let dataset = HFHubDataset(id: target.repo, title: target.title)
+        let hubKind: HFHubBrowser.Kind = target.kind == .corpus ? .corpus : .fineTune
+        pendingRecipeDatasetID = nil
+
+        Task { [weak self] in
+            guard let self else { return }
+            let files = (try? await HFHubClient.compatibleFiles(repo: target.repo, kind: hubKind, limit: 40)) ?? []
+            let preferred = target.fileContains.flatMap { hint in
+                files.first { $0.path.localizedCaseInsensitiveContains(hint) }
+            }
+            let chosen = preferred ?? files.first { $0.path.localizedCaseInsensitiveContains("train") } ?? files.first
+
+            if let chosen {
+                await MainActor.run {
+                    self.pendingRecipe = recipe
+                    if target.kind == .corpus { self.downloadHFCorpus(dataset, file: chosen) }
+                    else { self.downloadHFDataset(dataset, file: chosen) }
+                }
+                return
+            }
+
+            let source = try? await HFHubClient.viewerSource(repo: target.repo)
+            await MainActor.run {
+                guard let source else {
+                    self.recipeStatus = nil
+                    self.datasetImportError = "Couldn't find an importable file for \(target.repo). Install the data from the dataset browser and run the recipe again."
+                    return
+                }
+                self.pendingRecipe = recipe
+                if target.kind == .corpus {
+                    self.importHFViewerCorpus(dataset, source: source, limit: target.rowLimit)
+                } else {
+                    self.importHFViewerDataset(dataset, source: source, limit: target.rowLimit)
+                }
+            }
+        }
+    }
+
+    /// Applies the recipe's share once its dataset finishes installing.
+    private func finishRecipeInstallIfNeeded(_ dataset: InstalledDataset) {
+        guard let recipe = pendingRecipe, recipe.data.kind == dataset.kind else { return }
+        applyRecipeShare(recipe, to: dataset)
+        recipeStatus = "\(recipe.name) is ready — \(dataset.name) installed."
+        pendingRecipe = nil
     }
 
     // MARK: - Training entry points
 
     func startTraining(resumeFrom: URL? = nil) {
-        guard hasCorpus else { datasetImportError = "Choose at least one text corpus before starting training."; return }
+        guard hasCorpus else { datasetImportError = "Choose at least one installed corpus in the training data panel before starting training."; return }
         do {
             try MLXMetalLibrary.ensureAvailable()
         } catch {
             datasetImportError = "Couldn't prepare MLX Metal: \(error.localizedDescription)"
             return
         }
-        if let resumeFrom, let meta = try? Checkpoint.loadMeta(from: resumeFrom) {
-            gptConfig = meta.config
-            tokenizer = meta.tokenizer
-        } else if tokenizer == nil { buildTokenizer() }
-        guard let tok = tokenizer else { return }
-        loading.begin("Preparing training", detail: "Building model and dataset…")
-        trainer.start(gptConfig: gptConfig, trainConfig: trainConfig, tokenizer: tok, corpus: corpus,
-                     hardware: hardware, datasetName: corpusName, resumeFrom: resumeFrom)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { self.loading.end() }
+        loading.begin("Preparing training", detail: "Reading the selected training mix…")
+        prepareCorpus { [weak self] in
+            guard let self else { return }
+            guard !self.corpus.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                self.loading.end()
+                self.datasetImportError = "The selected corpus files are empty. Adjust the training mix and try again."
+                return
+            }
+            if let resumeFrom, let meta = try? Checkpoint.loadMeta(from: resumeFrom) {
+                self.gptConfig = meta.config
+                self.tokenizer = meta.tokenizer
+            } else if self.tokenizer == nil {
+                let tok: Tokenizer = self.tokenizerKind == .byte ? .byte() : .character(from: self.corpus)
+                self.tokenizer = tok
+                self.gptConfig.vocabSize = tok.vocabSize
+            }
+            guard let tok = self.tokenizer else { self.loading.end(); return }
+            self.loading.update(detail: "Building model and dataset…", progress: nil)
+            self.trainer.start(gptConfig: self.gptConfig, trainConfig: self.trainConfig, tokenizer: tok, corpus: self.corpus,
+                               hardware: self.hardware, datasetName: self.corpusName, resumeFrom: resumeFrom)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { self.loading.end() }
+        }
     }
 
     func startSFT(useLoRA: Bool, resumeFrom: URL? = nil) {
-        guard !sftConversations.isEmpty else { datasetImportError = "Add at least one compatible JSONL dataset before starting fine-tuning."; return }
+        guard hasFineTuneData else { datasetImportError = "Select at least one installed fine-tuning dataset in the training data panel."; return }
         do {
             try MLXMetalLibrary.ensureAvailable()
         } catch {
             datasetImportError = "Couldn't prepare MLX Metal: \(error.localizedDescription)"
             return
         }
-        if let resumeFrom, let meta = try? Checkpoint.loadMeta(from: resumeFrom) {
-            gptConfig = meta.config
-            tokenizer = meta.tokenizer
-        } else if tokenizer == nil { buildTokenizer() }
-        guard let tok = tokenizer else { return }
-        loading.begin("Preparing fine-tuning", detail: "Building chat batches with loss masking…")
+        loading.begin("Preparing fine-tuning", detail: "Reading the selected fine-tuning mix…")
+        prepareFineTuneData { [weak self] in
+            guard let self else { return }
+            guard !self.sftConversations.isEmpty else {
+                self.loading.end()
+                self.datasetImportError = "No usable rows were found in the selected fine-tuning mix."
+                return
+            }
+            if let resumeFrom, let meta = try? Checkpoint.loadMeta(from: resumeFrom) {
+                self.gptConfig = meta.config
+                self.tokenizer = meta.tokenizer
+                self.finishSFT(useLoRA: useLoRA, resumeFrom: resumeFrom)
+            } else if self.tokenizer == nil {
+                // A chat tokenizer still needs a vocabulary; derive it from the corpus
+                // mix when one is selected, otherwise from the conversations themselves.
+                self.prepareCorpus { [weak self] in
+                    guard let self else { return }
+                    let source = self.corpus.isEmpty
+                        ? self.sftConversations.flatMap { $0 }.map(\.content).joined(separator: "\n")
+                        : self.corpus
+                    let tok: Tokenizer = self.tokenizerKind == .byte ? .byte() : .character(from: source)
+                    self.tokenizer = tok
+                    self.gptConfig.vocabSize = tok.vocabSize
+                    self.finishSFT(useLoRA: useLoRA, resumeFrom: resumeFrom)
+                }
+            } else {
+                self.finishSFT(useLoRA: useLoRA, resumeFrom: resumeFrom)
+            }
+        }
+    }
+
+    private func finishSFT(useLoRA: Bool, resumeFrom: URL?) {
+        guard let tok = tokenizer else { loading.end(); return }
+        loading.update(detail: "Building chat batches with loss masking…", progress: nil)
         trainer.startSFT(gptConfig: gptConfig, trainConfig: trainConfig, tokenizer: tok,
                          conversations: sftConversations, useLoRA: useLoRA,
                          hardware: hardware, datasetName: sftDatasetName, resumeFrom: resumeFrom)
@@ -265,7 +809,7 @@ final class AppState: ObservableObject {
                 if convs.isEmpty {
                     self.datasetImportError = ConversationImportError.noValidRows.localizedDescription
                 } else {
-                    self.addSFTSource(name: url.lastPathComponent, origin: "Local JSONL", conversations: convs)
+                    self.installFineTuneData(name: url.lastPathComponent, origin: "Local JSONL", conversations: convs)
                 }
                 self.loading.end()
             }
@@ -289,8 +833,8 @@ final class AppState: ObservableObject {
                     if convs.isEmpty {
                         self.finishViewerImport(error: "Downloaded the file, but no rows matched a recognized instruction or conversation format. Choose another JSON or JSONL file from this dataset.")
                     } else {
-                        self.addSFTSource(name: dataset.displayName, origin: "Hugging Face · \(dataset.id)", conversations: convs)
-                        self.dataImport.update(completedRows: convs.count, detail: "Imported \(convs.count.formatted()) rows with \(ConversationImport.pairCount(in: convs.flatMap { $0 }).formatted()) fine-tuning pairs")
+                        self.installFineTuneData(name: dataset.displayName, origin: "Hugging Face · \(dataset.id)", conversations: convs)
+                        self.dataImport.update(completedRows: convs.count, detail: "Installed \(convs.count.formatted()) rows with \(ConversationImport.pairCount(in: convs.flatMap { $0 }).formatted()) fine-tuning pairs")
                         self.finishViewerImport(error: nil)
                     }
                 }
@@ -356,15 +900,14 @@ final class AppState: ObservableObject {
                 finishViewerImport(error: "This dataset has no recognizable text column to use for pre-training.")
                 return
             }
-            addCorpusSource(name: job.dataset.displayName, origin: "Hugging Face Viewer · \(job.dataset.id)", text: text)
-            tokenizer = nil
+            installCorpus(name: job.dataset.displayName, origin: "Hugging Face Viewer · \(job.dataset.id)", text: text)
         case .fineTune:
             let conversations = ConversationImport.conversations(from: rows)
             guard !conversations.isEmpty else {
                 finishViewerImport(error: "This dataset doesn't expose recognized messages, instruction/output, or prompt/response columns.")
                 return
             }
-            addSFTSource(name: job.dataset.displayName, origin: "Hugging Face Viewer · \(job.dataset.id)", conversations: conversations)
+            installFineTuneData(name: job.dataset.displayName, origin: "Hugging Face Viewer · \(job.dataset.id)", conversations: conversations)
         }
         finishViewerImport(error: nil)
     }
@@ -387,7 +930,7 @@ final class AppState: ObservableObject {
                         self.loading.end()
                         return
                     }
-                    self.addSFTSource(name: "iMessage chats", origin: "Local iMessage database", conversations: conversations)
+                    self.installFineTuneData(name: "iMessage chats", origin: "Local iMessage database", conversations: conversations)
                     self.loading.end()
                 }
             } catch {
@@ -397,32 +940,6 @@ final class AppState: ObservableObject {
                 }
             }
         }
-    }
-
-    func addSFTSource(name: String, origin: String, conversations: [[ChatMessage]]) {
-        sftSources.append(SFTDataSource(name: name, origin: origin, conversations: conversations))
-        rebuildSFTMix()
-    }
-
-    func rebuildSFTMix() {
-        let enabled = sftSources.filter(\.isEnabled)
-        guard !enabled.isEmpty else {
-            sftConversations = []
-            sftDatasetName = "No fine-tuning data selected"
-            return
-        }
-        var merged: [[ChatMessage]] = []
-        for source in enabled {
-            let available = source.conversations.count
-            let count: Int
-            switch source.limitMode {
-            case .lines: count = min(available, max(0, source.lineLimit))
-            case .percent: count = min(available, max(1, Int((Double(available) * source.percent / 100).rounded())))
-            }
-            merged.append(contentsOf: source.conversations.prefix(count))
-        }
-        sftConversations = merged
-        sftDatasetName = enabled.count == 1 ? enabled[0].name : "Merged \(enabled.count) datasets"
     }
 
     nonisolated private static func formatBytes(_ value: Int64) -> String {

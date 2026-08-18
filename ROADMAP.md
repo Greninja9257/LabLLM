@@ -20,6 +20,8 @@ This roadmap is meant for GitHub visitors and contributors. It shows what alread
 | P0 | Training correctness | 🟡 | Determinism, fixed validation, checkpoint state, padding masks, dataset windowing, and DPO truncation are being treated as correctness-critical. |
 | P0 | Reproducible experiments | 🟡 | New checkpoints store more training state. Older checkpoints load, but cannot exact-resume because they did not contain optimizer/RNG state. |
 | P0 | Dataset reliability | 🟡 🔵 | Importing, previewing, filtering, chunking, and mixing data should be robust before new dataset features grow further. |
+| P0 | Local persistence | 🟡 | Installed datasets are written to Application Support and reloaded on launch. Model workspaces and their checkpoints are stored per model. Import/export of a whole model is still missing. |
+| P1 | Model workspaces | 🟡 🔵 | Each model owns its architecture, hyperparameters, tokenizer choice, data mix, checkpoints, and saved run sessions. Notes, tags, archiving, and comparison across models are still open. |
 | P1 | Contributor test coverage | 🟡 🔵 | Core behavior tests exist and should expand around LoRA, DPO, tokenizer edge cases, and checkpoint compatibility. |
 | P1 | UX clarity | 🟡 🔵 | The app should make training state, beta limitations, progress, errors, and next steps obvious. |
 
@@ -32,8 +34,10 @@ This roadmap is meant for GitHub visitors and contributors. It shows what alread
 | Modes | Simple, Advanced, and Expert modes with feature visibility controls. |
 | Model builder | GPT-style decoder configs, model presets, parameter estimates, memory/disk/time estimates, config validation. |
 | Tokenizers | Character tokenizer, byte tokenizer, trained BPE tokenizer, Simple mode automatic tokenizer build. |
+| Model workspaces | Named models created, renamed, duplicated, switched, and deleted from the model menu in the top-left of the sidebar. Each model stores its own architecture, hyperparameters, tokenizer choice, and data mix. |
 | Data import | Local TXT, JSON, JSONL, CSV-ish data, iMessage import path, Hugging Face dataset browsing/import. |
-| Dataset mixing | Percentage-based and row-limit mixing for multiple data sources. |
+| Installed dataset library | Every import is written to `~/Library/Application Support/LabLLM/Library` and reloaded on the next launch. Installed datasets can be renamed, revealed in Finder, and deleted from disk. |
+| Dataset mixing | Percentage-based and row-limit mixing, configured per run in the Training page rather than in the dataset browsers. |
 | Large-task handling | Download/import progress and chunked local file loading for bigger files. |
 | Pretraining | AdamW/SGD, warmup, cosine LR, gradient clipping, gradient accumulation, checkpoints, pause, resume controls, stop controls. |
 | Fine-tuning | SFT with chat templates and assistant-only loss masking, LoRA fine-tuning, DPO preference training. |
@@ -41,7 +45,10 @@ This roadmap is meant for GitHub visitors and contributors. It shows what alread
 | Sampling | Temperature, top-k, top-p, min-p, repetition penalty, seed, stop sequences, greedy mode, continuation, inline generation display. |
 | Chat | Local model chat playground with streamed responses. |
 | Inspection | X-Ray token probabilities, entropy, top alternatives, embedding explorer with 2D projection. |
-| Models | Checkpoint save/load, model manager, rename/duplicate/organize flows, quantized export, Markdown model cards. |
+| Session history | Loss curves, metrics, and sample timelines are saved per model and per run mode (pretrain, fine-tune, DPO), and restored automatically on relaunch. |
+| Recipes | Runnable recipes that apply the architecture, hyperparameters and tokenizer, install the dataset they need, and open Training ready to start. |
+| Dataset cards | Hugging Face READMEs are rendered with YAML frontmatter stripped and HTML flattened, instead of showing raw markup. |
+| Checkpoints | Model-scoped checkpoint browser (each model lists only its own runs), save/load, rename/duplicate/delete flows, quantized export, Markdown model cards. |
 | Serving | Local OpenAI-shaped HTTP server with streaming responses. |
 | Onboarding | Welcome screen, persistent tutorial progress, guided setup overlay. |
 | Community | README, website, issue templates, PR template, contributing guide, discussions guide, all-contributors support. |
@@ -59,7 +66,11 @@ This roadmap is meant for GitHub visitors and contributors. It shows what alread
 | Tokenizer robustness | Handle unseen characters explicitly instead of silently mapping them to normal tokens. | 🔵 Good first Core correctness issue. |
 | LoRA correctness | Verify zero-B initialization preserves outputs, only adapters train, base model stays frozen, and adapter save/load works. | 🔵 Strong contributor project for ML-minded folks. |
 | Checkpoint browser | Surface whether a checkpoint is exact-resumable or legacy/incomplete. | 🔵 UI + metadata task. |
-| Dataset Studio | Better filtering, sorting, provenance, versioning, previews, checksums, licenses, and caching. | 🔵 Frontend and data-quality contributors welcome. |
+| Model workspaces | Notes, tags, archiving, model-to-model comparison, and export/import of a complete model folder. | 🔵 Good app-level contribution. |
+| Dataset library | Checksums, licenses, versioning, dedupe on install, and re-import of a dataset that changed upstream. | 🔵 Data-quality contributors welcome. |
+| Dataset Studio | Better filtering, sorting, provenance, previews, and caching. | 🔵 Frontend and data-quality contributors welcome. |
+| Experiment history | Sessions currently keep the latest run per mode. Keeping a full run history, comparing runs, and exporting them is the next step. | 🔵 Natural follow-on to session persistence. |
+| Recipes | More recipes, recipe sharing, and recipes that chain pretrain → SFT → DPO in one plan. | 🔵 Good contributor project. |
 | Tutorial | More complete guided setup across Simple, Advanced, and Expert mode without forcing a single path. | 🔵 UX/content contribution. |
 | Local server | Request logs, token usage, latency stats, model health, and safer local API controls. | 🔵 Practical app/backend work. |
 
@@ -171,10 +182,11 @@ This roadmap is meant for GitHub visitors and contributors. It shows what alread
 ```text
 Learn
 -> Explore
--> Create project
+-> Create model
 -> Design model
--> Import data
+-> Install data
 -> Clean/analyze data
+-> Choose the training mix
 -> Configure training
 -> Estimate resources
 -> Train

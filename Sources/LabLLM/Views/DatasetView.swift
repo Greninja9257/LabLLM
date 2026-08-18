@@ -8,15 +8,21 @@ struct DatasetView: View {
     @StateObject private var browser = HFHubBrowser(kind: .corpus)
     @State private var importing = false
 
+    /// Recommended sources stay pinned to the top in every mode. They are the
+    /// repositories known to import cleanly here, which is just as useful to an
+    /// expert as to a beginner.
     private var displayedResults: [HFHubDataset] {
-        guard prefs.mode == .simple else { return browser.results }
         let remote = browser.results.filter { remote in !browser.pinned.contains(where: { $0.id == remote.id }) }
         return browser.pinned + remote.sorted { ($0.downloads ?? 0) > ($1.downloads ?? 0) }
     }
 
+    private func isRecommended(_ dataset: HFHubDataset) -> Bool {
+        browser.pinned.contains { $0.displayName == dataset.displayName && $0.id == dataset.id }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            WorkbenchPageHeader(eyebrow: "Dataset Studio", title: "Pre-Training Data", subtitle: "Browse public Hugging Face corpora, inspect their source files, then combine exactly the text you want to train on.", icon: "text.book.closed")
+            WorkbenchPageHeader(eyebrow: "Dataset Studio", title: "Pre-Training Data", subtitle: "Browse public Hugging Face corpora and install them to disk. How much of each one a run uses is set in Training.", icon: "text.book.closed")
                 .padding(.horizontal, WorkbenchTheme.pagePadding).padding(.top, 22).padding(.bottom, 14)
             GeometryReader { proxy in
                 let browserWidth = min(320, max(220, proxy.size.width * 0.34))
@@ -53,8 +59,8 @@ struct DatasetView: View {
             if !browser.activityDetail.isEmpty {
                 Text(browser.activityDetail).font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
             }
-            if prefs.mode == .simple && prefs.showDatasetHints {
-                Label("Recommended sources are pinned first. Simple mode downloads the selected source automatically.", systemImage: "sparkles")
+            if prefs.showDatasetHints {
+                Label("Starred sources are pinned first in every mode. Installed data is written to disk and stays available after a relaunch.", systemImage: "sparkles")
                     .font(.caption).foregroundStyle(.secondary)
             }
             if browser.isLoading && browser.results.isEmpty {
@@ -63,7 +69,7 @@ struct DatasetView: View {
                 ScrollView {
                     LazyVStack(spacing: 4) {
                         ForEach(displayedResults, id: \.displayName) { dataset in
-                            DatasetBrowserRow(dataset: dataset, isSelected: browser.selected == dataset, recommended: prefs.mode == .simple && dataset.downloads == displayedResults.first?.downloads)
+                            DatasetBrowserRow(dataset: dataset, isSelected: browser.selected == dataset, recommended: isRecommended(dataset))
                                 .contentShape(Rectangle())
                                 .onTapGesture { browser.select(dataset) }
                                 .onAppear { browser.loadMoreIfNeeded(dataset) }
@@ -78,17 +84,28 @@ struct DatasetView: View {
         .background(WorkbenchTheme.panel)
     }
 
-    @ViewBuilder private var inspectorPane: some View {
-        if let dataset = browser.selected {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+    private var inspectorPane: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                if let dataset = browser.selected {
+                    datasetDetail(dataset)
+                } else {
+                    WorkbenchEmptyState(icon: "rectangle.and.text.magnifyingglass", title: "Select a dataset", message: "Search or browse the list to inspect a public dataset before installing it.")
+                }
+                InstalledDatasetsPanel(kind: .corpus)
+            }.padding(WorkbenchTheme.pagePadding)
+        }
+    }
+
+    @ViewBuilder private func datasetDetail(_ dataset: HFHubDataset) -> some View {
+        VStack(alignment: .leading, spacing: 20) {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 5) {
                             Text(dataset.displayName).font(.title2.bold())
                             Text(dataset.id).font(.callout.monospaced()).foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Button(prefs.mode == .simple ? "Download and use" : "Import corpus") { importSelected(dataset) }
+                        Button(prefs.mode == .simple ? "Download and install" : "Install corpus") { importSelected(dataset) }
                             .buttonStyle(WorkbenchPrimaryButtonStyle())
                             .disabled(browser.selectedFile == nil && browser.viewerSource == nil)
                             .tutorialTarget(.corpusAdded)
@@ -113,36 +130,8 @@ struct DatasetView: View {
                     }
                     GroupBox("Dataset card") {
                         if browser.isLoadingReadme { ProgressView("Loading README…") }
-                        else { MarkdownPreview(markdown: browser.readme) }
+                        else { DatasetCardPreview(markdown: browser.readme) }
                     }
-                    if state.corpusSources.count > 1 { corpusMix }
-                }.padding(WorkbenchTheme.pagePadding)
-            }
-        } else {
-            WorkbenchEmptyState(icon: "rectangle.and.text.magnifyingglass", title: "Select a dataset", message: "Search or browse the list to inspect a public dataset before importing it.")
-                .padding(WorkbenchTheme.pagePadding)
-        }
-    }
-
-    private var corpusMix: some View {
-        GroupBox("Training mix") {
-            if state.corpusSources.count > 1 {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("\(state.corpusName) · \(format(state.corpusCharCount)) characters").font(.headline)
-                    ForEach($state.corpusSources) { $source in
-                        VStack(alignment: .leading, spacing: 5) {
-                            HStack {
-                                Toggle(source.name, isOn: $source.isEnabled).toggleStyle(.checkbox)
-                                Spacer()
-                                Text("\(Int(source.percent))%").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
-                            }
-                            Slider(value: $source.percent, in: 1...100, step: 1)
-                        }
-                        .onChange(of: source.isEnabled) { _ in state.rebuildCorpusMix() }
-                        .onChange(of: source.percent) { _ in state.rebuildCorpusMix() }
-                    }
-                }
-            }
         }
     }
 
@@ -165,24 +154,6 @@ struct DatasetView: View {
         tutorial.complete(.corpusAdded)
     }
     private func format(_ number: Int) -> String { NumberFormatter.localizedString(from: NSNumber(value: number), number: .decimal) }
-}
-
-private struct MarkdownPreview: View {
-    let markdown: String
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 8) {
-                ForEach(Array(markdown.split(separator: "\n", omittingEmptySubsequences: false).enumerated()), id: \.offset) { _, line in
-                    let text = String(line)
-                    if text.hasPrefix("### ") { Text(String(text.dropFirst(4))).font(.headline) }
-                    else if text.hasPrefix("## ") { Text(String(text.dropFirst(3))).font(.title3.bold()) }
-                    else if text.hasPrefix("# ") { Text(String(text.dropFirst(2))).font(.title2.bold()) }
-                    else if text.hasPrefix("- ") { Label(String(text.dropFirst(2)), systemImage: "circle.fill").font(.callout).foregroundStyle(.secondary) }
-                    else if !text.isEmpty { Text(text).font(.callout).foregroundStyle(.secondary).textSelection(.enabled) }
-                }
-            }.frame(maxWidth: .infinity, alignment: .leading)
-        }.frame(maxHeight: 360)
-    }
 }
 
 private struct DatasetBrowserRow: View {

@@ -18,6 +18,8 @@ struct LabLLMApp: App {
                 .environmentObject(state)
                 .environmentObject(state.trainer)   // nested object observed directly
                 .environmentObject(state.loading)
+                .environmentObject(state.library)   // installed datasets on disk
+                .environmentObject(state.models)    // model workspaces + active model
                 .environmentObject(prefs)
                 .environmentObject(server)
                 .environmentObject(tutorial)

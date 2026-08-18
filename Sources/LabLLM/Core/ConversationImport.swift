@@ -196,34 +196,10 @@ enum ConversationImport {
     }
 }
 
-enum DatasetLimitMode: String, CaseIterable, Identifiable {
+enum DatasetLimitMode: String, Codable, CaseIterable, Identifiable {
     case percent = "% of rows"
     case lines = "Lines"
     var id: String { rawValue }
-}
-
-struct SFTDataSource: Identifiable {
-    let id = UUID()
-    var name: String
-    var origin: String
-    var conversations: [[ChatMessage]]
-    var isEnabled = true
-    var limitMode: DatasetLimitMode = .percent
-    var percent: Double = 100
-    var lineLimit: Int = 1_000
-
-    var selectedCount: Int {
-        switch limitMode {
-        case .percent: return min(conversations.count, max(1, Int((Double(conversations.count) * percent / 100).rounded())))
-        case .lines: return min(conversations.count, max(0, lineLimit))
-        }
-    }
-
-    var pairCount: Int { conversations.reduce(0) { $0 + ConversationImport.pairCount(in: $1) } }
-
-    var selectedPairCount: Int {
-        conversations.prefix(selectedCount).reduce(0) { $0 + ConversationImport.pairCount(in: $1) }
-    }
 }
 
 /// Downloads a file from a Hugging Face dataset repo via the public `resolve/main`
