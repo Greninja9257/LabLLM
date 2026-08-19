@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>Train language models you can actually talk to, from scratch.</strong>
+  <strong>Train language models you can actually talk to.</strong>
 </p>
 
 <p align="center">
