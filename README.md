@@ -29,9 +29,28 @@
 > [!WARNING]
 > **LabLLM is beta software.** This build can train and fine-tune real models, but it is **not** representative of the final product. Expect bugs, missing features, and fast-moving updates. Keep backups of important projects and report anything that breaks.
 
-LabLLM is a free, native macOS GUI for training small Transformer and LLM models from scratch with your own datasets. Build a GPT-style model with random initialization, train it with Apple Silicon and MLX, inspect live training metrics, save checkpoints, continue experiments, fine-tune behavior, and chat with the model you trained.
+## What if you could build and train your own LLM like you're using a Mac app?
 
-It is built with SwiftUI and Apple MLX for people who want the full model-building loop in one place: data, tokenizer, architecture, training, fine-tuning, sampling, chat, checkpoints, and model management. Models, datasets, checkpoints, chats, and experiments stay on your machine.
+I built **LabLLM** — a free, native macOS app that puts the entire LLM training workflow in one place.
+
+With LabLLM, you can:
+
+• build a Transformer from scratch  
+• train it on your own datasets  
+• use Apple Silicon + MLX for local training  
+• watch training metrics and loss curves live  
+• save and resume checkpoints  
+• fine-tune with LoRA / DPO  
+• inspect tokens and embeddings  
+• experiment with sampling and generation  
+• chat with the model you trained  
+• manage your models, datasets, and experiments  
+
+**No cloud. No subscription. No sending your data anywhere.**
+
+Everything stays on your Mac.
+
+Open source ↓
 
 ## Why?
 
